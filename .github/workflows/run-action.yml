@@ -32,7 +32,9 @@ jobs:
         node-version: lts/*
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        npx playwright install
 
     - name: Run script
       run: node index.js ${{ github.event.inputs.command }}

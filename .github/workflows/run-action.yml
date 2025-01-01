@@ -1,0 +1,52 @@
+name: Run Bot Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command to run'
+        required: true
+        default: 'download-tdg'
+        type: choice
+        options:
+          - download-tdg
+      filter:
+        description: 'Filter to apply based on the command'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run script
+      run: node index.js ${{ github.event.inputs.command }}
+      env:
+        TDG_USER: ${{ secrets.TDG_USER }}
+        TDG_PASSWORD: ${{ secrets.TDG_PASSWORD }}
+        TDG_ARTIFACT_NAME: 'tdg.pdf'
+        TDG_FILTER: ${{ github.event.inputs.filter }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: output
+        path: tdg.pdf
+        if-no-files-found: error
+        retention-days: 3
+        overwrite: true

@@ -8,7 +8,7 @@ URLs.set('magazine', 'https://www.terradeigiochi.it/1039-tdg-magazine')
 
 async function downloadTDG (args, env) {
   const browser = await chromium.launch({
-    headless: false
+    headless: env.TDG_HEADLESS !== 'false',
   })
   const context = await browser.newContext()
 
@@ -24,8 +24,20 @@ async function downloadTDG (args, env) {
 
     // Buy the magazine
     await page.goto(URLs.get('magazine'))
-    await page.getByRole('link', { name: 'Nuovo' }).click()
+
+    if (env.TDG_FILTER) {
+      // 📝 filtered magazine (filtered)
+      const month = env.TDG_FILTER
+      const reg = new RegExp(`TDG Magazine: \\d+- ${month}`, 'i')
+      const linkLocator = page.locator('role=link', { hasText: reg })
+      await linkLocator.first().waitFor()
+      await linkLocator.first().click()
+    } else {
+    //  📝 latest magazine
+      await page.getByRole('link', { name: 'Nuovo' }).click()
+    }
     await page.locator('#add-to-cart-or-refresh').getByRole('button', { name: ' Aggiungi al carrello' }).click()
+
     await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
     await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
     await page.getByRole('button', { name: 'Continua' }).click()
@@ -37,11 +49,12 @@ async function downloadTDG (args, env) {
     // Download the magazine in the browser
     await page.getByRole('link', { name: 'Dettagli' }).first().click()
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('link', { name: 'TDG Magazine: 34- Gennaio' }).click()
+
+    const downloadLocator = page.locator('role=link', { hasText: /TDG Magazine: \d+-/ })
+    await downloadLocator.first().waitFor()
+    await downloadLocator.first().click()
+
     const download = await downloadPromise
-    // await expect(page.getByRole('cell', { name: 'TDG Magazine: 34- Gennaio' })).toBeVisible();
-    // await expect(page.locator('#order-products')).toContainText('TDG Magazine');
-    // await expect(page.locator('#order-products')).toMatchAriaSnapshot(`- 'link /TDG Magazine: \\d+- Gennaio \\d+ \\(Versione Digitale\\)/'`);
 
     // Download the file payload
     const savePath = path.join(process.cwd(), env.TDG_ARTIFACT_NAME || download.suggestedFilename())

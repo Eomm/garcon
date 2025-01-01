@@ -6,10 +6,15 @@
   "scripts": {
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "start": "node --env-file=.env index.js download-tdg",
+    "start:download-tdg": "node --env-file=.env index.js download-tdg",
+    "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "telegram",
+    "bot",
+    "automation"
+  ],
   "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
   "license": "MIT",
   "dependencies": {

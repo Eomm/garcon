@@ -31,6 +31,13 @@ jobs:
       with:
         node-version: lts/*
 
+    - name: Cache Node modules
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-cache-${{ hashFiles('**/package.json') }}
+        restore-keys: ${{ runner.os }}-cache-
+
     - name: Install dependencies
       run: |
         npm install

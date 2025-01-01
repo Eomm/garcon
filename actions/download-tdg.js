@@ -29,6 +29,7 @@ async function downloadTDG (args, env) {
 
     if (env.TDG_FILTER) {
       // 📝 filtered magazine (filtered)
+      console.log('Filtering megazine...')
       const month = env.TDG_FILTER
       const reg = new RegExp(`TDG Magazine: \\d+- ${month}`, 'i')
       const linkLocator = page.locator('role=link', { hasText: reg })
@@ -36,21 +37,27 @@ async function downloadTDG (args, env) {
       await linkLocator.first().click()
     } else {
     //  📝 latest magazine
+      console.log('Getting latest magazine...')
       await page.getByRole('link', { name: 'Nuovo' }).click()
     }
     await page.locator('#add-to-cart-or-refresh').getByRole('button', { name: ' Aggiungi al carrello' }).click()
+    console.log('Added to cart')
 
-    // TODO skip the checkout process to test the download
-    // await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
-    // await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
-    // await page.getByRole('button', { name: 'Continua' }).click()
-    // await page.waitForTimeout(1_000)
-    // await page.getByLabel('Accetto i termini del').check()
-    // await page.waitForSelector('button:enabled')
-    // await page.getByRole('button', { name: 'Procedi col pagamento' }).click()
-    // await page.getByRole('link', { name: 'Dettagli' }).first().click()
-
-    await page.goto(URLs.get('test'))
+    if (env.TDG_TEST !== 'true') {
+      console.log('Checking out...')
+      //  skip the checkout process to test the download and notification process
+      await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
+      await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
+      await page.getByRole('button', { name: 'Continua' }).click()
+      await page.waitForTimeout(1_000)
+      await page.getByLabel('Accetto i termini del').check()
+      await page.waitForSelector('button:enabled')
+      await page.getByRole('button', { name: 'Procedi col pagamento' }).click()
+      await page.getByRole('link', { name: 'Dettagli' }).first().click()
+    } else {
+      console.log('Skipping checkout...')
+      await page.goto(URLs.get('test'))
+    }
 
     // Download the magazine in the browser
     const downloadPromise = page.waitForEvent('download')
@@ -59,6 +66,7 @@ async function downloadTDG (args, env) {
     await downloadLocator.first().waitFor()
     await downloadLocator.first().click()
 
+    console.log('Downloading magazine...')
     const download = await downloadPromise
 
     // Download the file payload

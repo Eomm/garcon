@@ -10,11 +10,18 @@ on:
         type: choice
         options:
           - download-tdg
+
       filter:
         description: 'Filter to apply based on the command'
         required: false
         default: ''
         type: string
+
+      dry_run:
+          description: 'Dry run mode'
+          required: false
+          default: false
+          type: boolean
 
 jobs:
   build:
@@ -50,6 +57,9 @@ jobs:
         TDG_PASSWORD: ${{ secrets.TDG_PASSWORD }}
         TDG_ARTIFACT_NAME: 'tdg.pdf'
         TDG_FILTER: ${{ github.event.inputs.filter }}
+        TDG_TEST: ${{ github.event.inputs.dry_run }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

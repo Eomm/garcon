@@ -20,6 +20,7 @@ Download my favorite free magazine from [https://www.terradeigiochi.it/1039-tdg-
 | `TDG_ARTIFACT_NAME` | File name of the downloaded file | `tdg.pdf` |
 | `TDG_FILTER` | Filter to select the correct download link | Latest megazine |
 | `TDG_HEADLESS` | Run the browser in headless mode | `true` |
+| `TDG_TEST` | Skip the checkout logic to avoid to get a ban | `false` |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
 | `TELEGRAM_CHAT_ID` | Chat id where the bot will send the downloaded file | |
 

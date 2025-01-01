@@ -1,0 +1,16 @@
+{
+  "name": "garcon",
+  "version": "1.0.0",
+  "description": "My personal bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file=.env index.js download-tdg",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.49.1"
+  }
+}

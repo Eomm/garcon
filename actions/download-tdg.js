@@ -6,6 +6,8 @@ const URLs = new Map()
 URLs.set('login', 'https://www.terradeigiochi.it/login?back=history')
 URLs.set('magazine', 'https://www.terradeigiochi.it/1039-tdg-magazine')
 
+URLs.set('test', 'https://www.terradeigiochi.it/index.php?controller=order-detail&id_order=41941')
+
 async function downloadTDG (args, env) {
   const browser = await chromium.launch({
     headless: env.TDG_HEADLESS !== 'false',
@@ -38,16 +40,19 @@ async function downloadTDG (args, env) {
     }
     await page.locator('#add-to-cart-or-refresh').getByRole('button', { name: ' Aggiungi al carrello' }).click()
 
-    await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
-    await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
-    await page.getByRole('button', { name: 'Continua' }).click()
-    await page.waitForTimeout(1000)
-    await page.getByLabel('Accetto i termini del').check()
-    await page.waitForSelector('button:enabled')
-    await page.getByRole('button', { name: 'Procedi col pagamento' }).click()
+    // TODO skip the checkout process to test the download
+    // await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
+    // await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
+    // await page.getByRole('button', { name: 'Continua' }).click()
+    // await page.waitForTimeout(1_000)
+    // await page.getByLabel('Accetto i termini del').check()
+    // await page.waitForSelector('button:enabled')
+    // await page.getByRole('button', { name: 'Procedi col pagamento' }).click()
+    // await page.getByRole('link', { name: 'Dettagli' }).first().click()
+
+    await page.goto(URLs.get('test'))
 
     // Download the magazine in the browser
-    await page.getByRole('link', { name: 'Dettagli' }).first().click()
     const downloadPromise = page.waitForEvent('download')
 
     const downloadLocator = page.locator('role=link', { hasText: /TDG Magazine: \d+-/ })

@@ -4,7 +4,6 @@ const assert = require('node:assert')
 const { action: downloadTDG } = require('./actions/download-tdg')
 
 async function run (args, env) {
-
   const action = args[0]
 
   switch (action) {
@@ -16,10 +15,8 @@ async function run (args, env) {
     default:
       throw new Error(`Action ${action} not found`)
   }
-
 }
 
 run(process.argv.slice(2), process.env)
   .then(() => console.log('Done'))
   .catch(error => console.error('Error:', error))
-

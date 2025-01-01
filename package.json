@@ -13,7 +13,8 @@
   "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
   "license": "MIT",
   "dependencies": {
-    "playwright": "^1.49.1"
+    "playwright": "^1.49.1",
+    "telegraf": "^4.16.3"
   },
   "devDependencies": {
     "neostandard": "^0.12.0"

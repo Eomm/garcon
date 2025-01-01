@@ -66,7 +66,10 @@ async function downloadTDG (args, env) {
     await download.saveAs(savePath)
     console.log(`File downloaded to: ${savePath}`)
 
-    return { savePath }
+    return {
+      fileName: download.suggestedFilename(),
+      savePath
+    }
   } finally {
     await context.close()
     await browser.close()

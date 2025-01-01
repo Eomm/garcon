@@ -20,11 +20,32 @@ Download my favorite free magazine from [https://www.terradeigiochi.it/1039-tdg-
 | `TDG_ARTIFACT_NAME` | File name of the downloaded file | `tdg.pdf` |
 | `TDG_FILTER` | Filter to select the correct download link | Latest megazine |
 | `TDG_HEADLESS` | Run the browser in headless mode | `true` |
+| `TDG_TEST` | Skip the checkout logic to avoid to get a ban | `false` |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
+| `TELEGRAM_CHAT_ID` | Chat id where the bot will send the downloaded file | |
 
 Run locally with:
 
 ```sh
 node --env-file=.env index.js download-tdg
+```
+
+## Configuration
+
+### Telegram
+
+The actions are designed to submit the results to a Telegram chat. To do this, you need to:
+1. Create a Telegram bot with BotFather and get the token
+2. Get the chat id where the bot will send the messages
+
+To get the chat id quickly and locally, you can use the following code:
+
+```sh
+# Start the bot
+node --env-file=.env bin/telegram-find-chat-id.js
+
+# Send a message to the bot in the chat you want to use
+# The bot will reply with the chat id in the console and in the chat
 ```
 
 ## License

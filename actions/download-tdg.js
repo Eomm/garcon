@@ -44,7 +44,7 @@ async function downloadTDG (args, env) {
     // await expect(page.locator('#order-products')).toMatchAriaSnapshot(`- 'link /TDG Magazine: \\d+- Gennaio \\d+ \\(Versione Digitale\\)/'`);
 
     // Download the file payload
-    const savePath = path.join(process.cwd(), download.suggestedFilename())
+    const savePath = path.join(process.cwd(), env.TDG_ARTIFACT_NAME || download.suggestedFilename())
     await download.saveAs(savePath)
     console.log(`File downloaded to: ${savePath}`)
 

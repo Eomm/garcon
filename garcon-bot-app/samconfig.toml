@@ -4,7 +4,6 @@ version = 0.1
 
 [default.global.parameters]
 stack_name = "garcon-bot-app"
-tags = "Project=GarconBot,Environment=Production"  # Add tags for cost tracking
 
 [default.build.parameters]
 cached = true
@@ -16,10 +15,14 @@ strict_security_check = true  # Perform additional security checks on resources
 
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
-#capabilities = "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND"  # Enable advanced capabilities for nested stacks
 confirm_changeset = true
 resolve_s3 = true
 fail_on_empty_changeset = true  # Avoid unnecessary deployments
+region = "eu-west-1"
+profile = "eomm"
+image_repositories = []
+s3_prefix = "garcon-bot-app"
+disable_rollback = true
 
 [default.package.parameters]
 resolve_s3 = true

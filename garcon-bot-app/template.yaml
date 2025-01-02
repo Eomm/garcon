@@ -6,7 +6,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 30
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
@@ -17,7 +17,7 @@ Resources:
     Properties:
       StageName: Prod
       MethodSettings:
-        - HttpMethod: "POST"
+        - HttpMethod: "*"
           ResourcePath: "/*"
           ThrottlingRateLimit: 1
           ThrottlingBurstLimit: 2
@@ -30,12 +30,13 @@ Resources:
       Runtime: nodejs22.x
       Architectures:
       - arm64
+      ReservedConcurrentExecutions: 1
       Events:
         HelloWorld:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId: !Ref ThrottlingApi
-            Path: /hello
+            Path: /
             Method: post
 
 Outputs:
@@ -44,7 +45,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   HelloWorldApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ThrottlingApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ThrottlingApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   HelloWorldFunction:
     Description: Hello World Lambda Function ARN
     Value: !GetAtt HelloWorldFunction.Arn

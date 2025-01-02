@@ -31,7 +31,23 @@ Run locally with:
 node --env-file=.env index.js download-tdg
 ```
 
+
 ## Configuration
+
+The configuration covers the following architecture:
+
+```mermaid
+sequenceDiagram
+    participant TelegramBotChat
+    participant Webhook (AWS Lambda)
+    participant GitHubActions
+
+    TelegramBotChat->>Webhook (AWS Lambda): POST request with payload
+    Webhook (AWS Lambda)->>Webhook (AWS Lambda): Process payload
+    Webhook (AWS Lambda)->>GitHubActions: Trigger workflow with inputs
+    GitHubActions->>GitHubActions: Run job logic
+    GitHubActions->>TelegramBotChat: Send result to Telegram chat
+```
 
 ### Telegram
 
@@ -49,9 +65,10 @@ node --env-file=.env bin/telegram-find-chat-id.js
 # Send a message to the bot in the chat you want to use
 # The bot will reply with the chat id in the console and in the chat
 
-# After you complete the `Deployment` section, you must update the telegram bot webhook
+# __After__ you complete the `Deployment` section, you must update the telegram bot webhook
 node --env-file=.env bin/telegram-set-webhook.js
 ```
+
 
 ### Deployment
 
@@ -62,7 +79,7 @@ This is done by configuring a dummy AWS Lambda function that triggers a GitHub A
 
 Note that the bot is a personal bot, so it can only be used by a single user, so this solution is not designed to be multi-tenant.
 
-Moreover, the deployment is done manually as first step, it will be automated if necessary or PRs are welcome indeed.
+Moreover, the deployment is done manually via AWS SEM as first step, it will be automated if necessary or PRs are welcome indeed.
 Read the [README.md](./garcon-bot-app/README.md) for more information.
 
 

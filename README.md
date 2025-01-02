@@ -31,6 +31,22 @@ Run locally with:
 node --env-file=.env index.js download-tdg
 ```
 
+### read-chat-id
+
+Echo the chat id of the message received by the bot.
+It simply echo the `TDG_FILTER` environment variable set by the GHA workflow input.
+
+| Environment variable | Description | Default value |
+| --- | --- | --- |
+| `TDG_FILTER` | The message to echo | |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
+| `TELEGRAM_CHAT_ID` | Chat id where the bot will send the downloaded file | |
+
+Run locally with:
+
+```sh
+node --env-file=.env index.js read-chat-id
+```
 
 ## Configuration
 

@@ -70,6 +70,6 @@ jobs:
       with:
         name: output
         path: tdg.pdf
-        if-no-files-found: error
+        if-no-files-found: warn
         retention-days: 3
         overwrite: true

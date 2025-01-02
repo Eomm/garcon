@@ -71,8 +71,8 @@ garcon-bot-app$ sam local invoke HelloWorldFunction --event events/event.json
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
 
 ```bash
-garcon-bot-app$ sam local start-api
-garcon-bot-app$ curl http://localhost:3000/
+garcon-bot-app$ sam local start-api --env-vars ./.env.json
+garcon-bot-app$ curl -X POST http://localhost:3000/
 ```
 
 The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.

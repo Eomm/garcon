@@ -11,7 +11,21 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
 
+# I know I should use Secrets Manager, but it is a paid service :D
+Parameters:
+  GHToken:
+    Type: String
+    Description: GitHub token to be used by the Lambda function
+    NoEcho: true
+  GHWorkflowUrl:
+    Type: String
+    Description: GitHub workflow URL to be used by the Lambda function
+  TelegramChatId:
+    Type: String
+    Description: Telegram chat ID to be used by the Lambda function
+
 Resources:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessapi
   ThrottlingApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -22,10 +36,10 @@ Resources:
           ThrottlingRateLimit: 1
           ThrottlingBurstLimit: 2
 
-  HelloWorldFunction:
+  GarconTelegramFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: hello-world/
+      CodeUri: garcon-telegram/
       Handler: app.lambdaHandler
       Runtime: nodejs22.x
       Architectures:
@@ -38,17 +52,25 @@ Resources:
             RestApiId: !Ref ThrottlingApi
             Path: /
             Method: post
+      Environment:
+        Variables:
+          GH_TOKEN: !Ref GHToken
+          GH_WORKFLOW_URL: !Ref GHWorkflowUrl
+          TELEGRAM_CHAT_ID: !Ref TelegramChatId
+          # GH_WORKFLOW_URL: '{{resolve:secretsmanager:MySecret:SecretString:password}}'
+          # GH_TOKEN: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
+          # TELEGRAM_CHAT_ID: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Description: API Gateway endpoint URL for Prod stage for Garcon function
     Value: !Sub "https://${ThrottlingApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  GarconTelegramFunction:
+    Description: Garcon Lambda Function ARN
+    Value: !GetAtt GarconTelegramFunction.Arn
+  GarconTelegramFunctionIamRole:
+    Description: Implicit IAM Role created for Garcon function
+    Value: !GetAtt GarconTelegramFunctionRole.Arn

@@ -4,6 +4,7 @@ version = 0.1
 
 [default.global.parameters]
 stack_name = "garcon-bot-app"
+tags = "Project=GarconBot,Environment=Production"  # Add tags for cost tracking
 
 [default.build.parameters]
 cached = true
@@ -11,20 +12,27 @@ parallel = true
 
 [default.validate.parameters]
 lint = true
+strict_security_check = true  # Perform additional security checks on resources
 
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
+#capabilities = "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND"  # Enable advanced capabilities for nested stacks
 confirm_changeset = true
 resolve_s3 = true
+fail_on_empty_changeset = true  # Avoid unnecessary deployments
 
 [default.package.parameters]
 resolve_s3 = true
+s3_prefix = "garcon-bot/"  # Use prefix for better organization and lifecycle policies
 
 [default.sync.parameters]
 watch = true
+skip_pull_image = true  # Avoid pulling unnecessary container images
 
 [default.local_start_api.parameters]
 warm_containers = "EAGER"
+log_file = "./logs/local_start_api.log"  # Capture logs for debugging and monitoring
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
+log_file = "./logs/local_start_lambda.log"  # Capture logs for debugging and monitoring

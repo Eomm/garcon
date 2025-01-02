@@ -61,6 +61,12 @@ Resources:
           # GH_TOKEN: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
           # TELEGRAM_CHAT_ID: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
 
+  GarconTelegramFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GarconTelegramFunction}"
+      RetentionInDays: 7  # Set the retention period in days
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM

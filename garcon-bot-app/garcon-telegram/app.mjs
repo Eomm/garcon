@@ -46,7 +46,7 @@ export const lambdaHandler = async (event, context) => {
     }
   }
 
-  console.log(`Executing command: ${commandInput}`)
+  console.log(`Executing command: ${telegramMsg.message.text}`)
   await triggerGitHubWorkflow(commandInput(telegramMsg), process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
   return {
     statusCode: 200,
@@ -73,6 +73,4 @@ async function triggerGitHubWorkflow (inputs, ghaWorkflow, ghaToken) {
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`)
   }
-
-  return response.json()
 }

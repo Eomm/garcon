@@ -37,7 +37,7 @@ To build and deploy your application for the first time, run the following in yo
 
 ```bash
 sam build
-sam deploy --guided
+sam deploy --guided --parameter-overrides "`tr -s '\n' ' ' < .env`"
 ```
 
 The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
@@ -107,7 +107,7 @@ You can find more information and examples about filtering Lambda function logs 
 To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
 
 ```bash
-sam delete --stack-name garcon-bot-app
+sam delete --stack-name garcon-bot-app --profile eomm
 ```
 
 ## Resources
@@ -115,3 +115,7 @@ sam delete --stack-name garcon-bot-app
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+
+sam list stack-outputs --profile eomm --output json
+
+sam list stack-outputs --profile eomm --output json | jq -r '.[] | select(.OutputKey == "GarconTelegramApi") | .OutputValue'

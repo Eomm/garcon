@@ -1,5 +1,22 @@
 'use strict'
 
+// ! These commands map the Telegram command (configured in BotFather) to the GitHub Actions workflow
+const mappedCommands = {
+  '/magazine': function () {
+    return {
+      command: 'download-tdg',
+      // TODO handle the filter
+      dry_run: 'true' // TODO disable dry_run
+    }
+  },
+  '/chatid': function (messagePayload) {
+    return {
+      command: 'read-chat-id',
+      filter: String(messagePayload.message.chat.id)
+    }
+  }
+}
+
 /**
  *
  * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
@@ -13,28 +30,34 @@
  *
  */
 export const lambdaHandler = async (event, context) => {
-  // TODO check the chat id
-  console.log('Received event:')
-  console.log(JSON.stringify(event, null, 2))
-  console.log(`Chat ID: ${process.env.TELEGRAM_CHAT_ID}`)
+  const telegramMsg = JSON.parse(event.body)
+  if (String(telegramMsg?.message?.chat?.id) !== process.env.TELEGRAM_CHAT_ID) {
+    return {
+      statusCode: 403,
+      body: 'FORBIDDEN'
+    }
+  }
 
-  // TODO check the command
-  const command = 'download-tdg'
+  const commandInput = telegramMsg?.message?.text?.startsWith('/') && mappedCommands[telegramMsg.message.text]
+  if (!commandInput) {
+    return {
+      statusCode: 200,
+      body: 'OK - No command'
+    }
+  }
 
-  await triggerGitHubWorkflow(command, process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
+  console.log(`Executing command: ${commandInput}`)
+  await triggerGitHubWorkflow(commandInput(telegramMsg), process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
   return {
     statusCode: 200,
     body: 'OK'
   }
 }
 
-async function triggerGitHubWorkflow (command, ghaWorkflow, ghaToken) {
+async function triggerGitHubWorkflow (inputs, ghaWorkflow, ghaToken) {
   const data = {
     ref: 'main',
-    inputs: {
-      command,
-      dry_run: 'true' // TODO disable dry_run
-    }
+    inputs
   }
 
   const response = await fetch(ghaWorkflow, {

@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - download-tdg
+          - read-chat-id
 
       filter:
         description: 'Filter to apply based on the command'

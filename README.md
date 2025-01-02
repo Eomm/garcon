@@ -38,6 +38,7 @@ node --env-file=.env index.js download-tdg
 The actions are designed to submit the results to a Telegram chat. To do this, you need to:
 1. Create a Telegram bot with BotFather and get the token
 2. Get the chat id where the bot will send the messages
+3. Set the Webhook to the bot
 
 To get the chat id quickly and locally, you can use the following code:
 
@@ -47,6 +48,9 @@ node --env-file=.env bin/telegram-find-chat-id.js
 
 # Send a message to the bot in the chat you want to use
 # The bot will reply with the chat id in the console and in the chat
+
+# After you complete the `Deployment` section, you must update the telegram bot webhook
+node --env-file=.env bin/telegram-set-webhook.js
 ```
 
 ### Deployment

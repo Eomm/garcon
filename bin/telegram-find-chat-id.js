@@ -15,6 +15,7 @@ async function echoChatId (env) {
     console.error(`Error for ${ctx.updateType}`, err)
   })
 
+  // ‼️ Don't forget to restore the webhook after running this script
   await bot.launch()
 
   process.once('SIGINT', () => bot.stop())

@@ -22,6 +22,13 @@ async function run (args, env) {
       ])
       break
     }
+    case 'read-chat-id': {
+      assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
+      await notifyUser(env, [
+        { type: 'message', payload: `The chat id is: ${env.TDG_FILTER}` },
+      ])
+      break
+    }
     default:
       throw new Error(`Action ${action} not found`)
   }

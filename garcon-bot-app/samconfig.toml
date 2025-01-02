@@ -1,0 +1,41 @@
+# More information about the configuration file can be found here:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+version = 0.1
+
+[default.global.parameters]
+stack_name = "garcon-bot-app"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+strict_security_check = true  # Perform additional security checks on resources
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+fail_on_empty_changeset = true  # Avoid unnecessary deployments
+region = "eu-west-1"
+profile = "eomm"
+image_repositories = []
+s3_prefix = "garcon-bot-app"
+disable_rollback = true
+
+[default.package.parameters]
+resolve_s3 = true
+s3_prefix = "garcon-bot/"  # Use prefix for better organization and lifecycle policies
+
+[default.sync.parameters]
+watch = true
+skip_pull_image = true  # Avoid pulling unnecessary container images
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+log_file = "./logs/local_start_api.log"  # Capture logs for debugging and monitoring
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+log_file = "./logs/local_start_lambda.log"  # Capture logs for debugging and monitoring

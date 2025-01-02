@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - download-tdg
+          - read-chat-id
 
       filter:
         description: 'Filter to apply based on the command'
@@ -26,6 +27,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    concurrency:
+      group: run-bot-action
+      cancel-in-progress: false
 
     steps:
     - name: Checkout repository

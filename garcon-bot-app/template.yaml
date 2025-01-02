@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  garcon-bot-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 128
+    LoggingConfig:
+      LogFormat: JSON
+
+# I know I should use Secrets Manager, but it is a paid service :D
+Parameters:
+  GHToken:
+    Type: String
+    Description: GitHub token to be used by the Lambda function
+    NoEcho: true
+  GHWorkflowUrl:
+    Type: String
+    Description: GitHub workflow URL to be used by the Lambda function
+  TelegramChatId:
+    Type: String
+    Description: Telegram chat ID to be used by the Lambda function
+
+Resources:
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessapi
+  ThrottlingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingRateLimit: 1
+          ThrottlingBurstLimit: 2
+
+  GarconTelegramFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: garcon-telegram/
+      Handler: app.lambdaHandler
+      Runtime: nodejs22.x
+      Architectures:
+      - arm64
+      ReservedConcurrentExecutions: 1
+      Events:
+        HelloWorld:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: !Ref ThrottlingApi
+            Path: /
+            Method: post
+      Environment:
+        Variables:
+          GH_TOKEN: !Ref GHToken
+          GH_WORKFLOW_URL: !Ref GHWorkflowUrl
+          TELEGRAM_CHAT_ID: !Ref TelegramChatId
+          # GH_WORKFLOW_URL: '{{resolve:secretsmanager:MySecret:SecretString:password}}'
+          # GH_TOKEN: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
+          # TELEGRAM_CHAT_ID: '{{resolve:secretsmanager:MySecret:SecretString:username}}'
+
+  GarconTelegramFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${GarconTelegramFunction}"
+      RetentionInDays: 7  # Set the retention period in days
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  GarconTelegramApi:
+    Description: API Gateway endpoint URL for Prod stage for Garcon function
+    Value: !Sub "https://${ThrottlingApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  GarconTelegramFunction:
+    Description: Garcon Lambda Function ARN
+    Value: !GetAtt GarconTelegramFunction.Arn
+  GarconTelegramFunctionIamRole:
+    Description: Implicit IAM Role created for Garcon function
+    Value: !GetAtt GarconTelegramFunctionRole.Arn

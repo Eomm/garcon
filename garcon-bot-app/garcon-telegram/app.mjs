@@ -2,11 +2,13 @@
 
 // ! These commands map the Telegram command (configured in BotFather) to the GitHub Actions workflow
 const mappedCommands = {
-  '/magazine': function () {
+  '/magazine': function (messagePayload) {
+    const text = messagePayload.message.text
+    const [, ...filters] = text.split(' ')
     return {
       command: 'download-tdg',
-      // TODO handle the filter
-      dry_run: 'true' // TODO disable dry_run
+      filter: filters.join(' ') || null,
+      dry_run: 'false'
     }
   },
   '/chatid': function (messagePayload) {
@@ -38,7 +40,8 @@ export const lambdaHandler = async (event, context) => {
     }
   }
 
-  const commandInput = telegramMsg?.message?.text?.startsWith('/') && mappedCommands[telegramMsg.message.text]
+  const commandName = telegramMsg?.message?.text?.startsWith('/') && telegramMsg.message.text.split(' ')[0]
+  const commandInput = mappedCommands[commandName]
   if (!commandInput) {
     return {
       statusCode: 200,
@@ -46,7 +49,7 @@ export const lambdaHandler = async (event, context) => {
     }
   }
 
-  console.log(`Executing command: ${telegramMsg.message.text}`)
+  console.log(`Executing command: ${commandName}`)
   await triggerGitHubWorkflow(commandInput(telegramMsg), process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
   return {
     statusCode: 200,

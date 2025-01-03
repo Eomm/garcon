@@ -50,9 +50,23 @@ jobs:
         restore-keys: ${{ runner.os }}-cache-
 
     - name: Install dependencies
-      run: |
-        npm install
-        npx playwright install
+      run: npm install
+
+    - name: Get installed Playwright version
+      id: playwright-version
+      run: echo "version=$(npm info playwright version)" >> $GITHUB_OUTPUT
+
+    - name: Cache Playwright
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: '~/.cache/ms-playwright'
+        key: '${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}'
+        restore-keys: ${{ runner.os }}-playwright-
+
+    - name: Install Playwright's dependencies
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install
 
     - name: Run script
       run: node index.js ${{ github.event.inputs.command }}

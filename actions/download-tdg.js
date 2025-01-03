@@ -4,6 +4,7 @@ const { chromium } = require('playwright')
 
 const URLs = new Map()
 URLs.set('login', 'https://www.terradeigiochi.it/login?back=history')
+URLs.set('checkout', 'https://www.terradeigiochi.it/carrello?action=show')
 URLs.set('magazine', 'https://www.terradeigiochi.it/1039-tdg-magazine')
 
 URLs.set('test', 'https://www.terradeigiochi.it/index.php?controller=order-detail&id_order=41941')
@@ -11,6 +12,7 @@ URLs.set('test', 'https://www.terradeigiochi.it/index.php?controller=order-detai
 async function downloadTDG (args, env) {
   const browser = await chromium.launch({
     headless: env.TDG_HEADLESS !== 'false',
+    slowMo: 250,
   })
   const context = await browser.newContext()
 
@@ -29,8 +31,8 @@ async function downloadTDG (args, env) {
 
     if (env.TDG_FILTER) {
       // 📝 filtered magazine (filtered)
-      console.log('Filtering megazine...')
       const month = env.TDG_FILTER
+      console.log(`Filtering megazine by [${month}]...`)
       const reg = new RegExp(`TDG Magazine: \\d+- ${month}`, 'i')
       const linkLocator = page.locator('role=link', { hasText: reg })
       await linkLocator.first().waitFor()
@@ -40,13 +42,14 @@ async function downloadTDG (args, env) {
       console.log('Getting latest magazine...')
       await page.getByRole('link', { name: 'Nuovo' }).click()
     }
+
+    await page.waitForSelector('#add-to-cart-or-refresh')
     await page.locator('#add-to-cart-or-refresh').getByRole('button', { name: ' Aggiungi al carrello' }).click()
     console.log('Added to cart')
 
     if (env.TDG_TEST !== 'true') {
       console.log('Checking out...')
-      //  skip the checkout process to test the download and notification process
-      await page.getByRole('link', { name: ' Procedi con il checkout' }).click()
+      await page.goto(URLs.get('checkout'))
       await page.getByRole('link', { name: 'Procedi con il checkout' }).click()
       await page.getByRole('button', { name: 'Continua' }).click()
       await page.waitForTimeout(1_000)

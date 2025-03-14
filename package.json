@@ -9,6 +9,7 @@
     "playwright:codegen": "npx playwright codegen",
     "start:download-tdg": "node --env-file=.env index.js download-tdg",
     "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
+    "start:store-msg": "node --env-file=.env bin/telegram-store-messages.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

@@ -52,6 +52,8 @@ async function executeFlow (options) {
 }
 
 module.exports = {
+  commandName: 'notify-user',
+  canHandle: (telegramMsg) => telegramMsg.message.text.startsWith('/chatid'),
   action: notifyUser,
   buildOptions,
   executeFlow

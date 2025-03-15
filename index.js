@@ -4,10 +4,11 @@ const fs = require('node:fs')
 const { parseArgs } = require('node:util')
 
 // ! These commands map the Telegram command (configured in BotFather)
-const mappedCommands = {
-  '/magazine': require('./actions/download-tdg'),
-  '/chatid': require('./actions/telegram-notification'),
-}
+const mappedCommands = [
+  require('./actions/download-tdg'),
+  require('./actions/telegram-notification'),
+  require('./actions/remind-me'),
+]
 
 /**
  *
@@ -17,13 +18,20 @@ const mappedCommands = {
 async function run (jsonString, env) {
   const telegramMsg = JSON.parse(jsonString)
 
-  const commandName = telegramMsg?.message?.text?.startsWith('/') && telegramMsg.message.text.split(' ')[0]
-  const actionToDo = mappedCommands[commandName]
+  const actionToDo = mappedCommands.find(action => {
+    try {
+      return action.canHandle(telegramMsg)
+    } catch (error) {
+      // Ignrore error
+      return false
+    }
+  })
+
   if (!actionToDo) {
-    throw new Error(`Action ${commandName} not found`)
+    throw new Error('No action found for this message')
   }
 
-  console.log(`Executing command: ${commandName}`)
+  console.log(`Executing command: ${actionToDo.commandName}`)
   const opts = actionToDo.buildOptions(telegramMsg, env)
   await actionToDo.executeFlow(opts)
 }

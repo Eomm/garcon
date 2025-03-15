@@ -132,6 +132,8 @@ async function executeFlow (options) {
 }
 
 module.exports = {
+  commandName: 'download-tdg',
+  canHandle: (telegramMsg) => telegramMsg.message.text.startsWith('/magazine'),
   action: downloadTDG,
   buildOptions,
   executeFlow

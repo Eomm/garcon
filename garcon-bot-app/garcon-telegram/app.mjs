@@ -1,24 +1,5 @@
 'use strict'
 
-// ! These commands map the Telegram command (configured in BotFather) to the GitHub Actions workflow
-const mappedCommands = {
-  '/magazine': function (messagePayload) {
-    const text = messagePayload.message.text
-    const [, ...filters] = text.split(' ')
-    return {
-      command: 'download-tdg',
-      filter: filters.join(' ') || null,
-      dry_run: 'false'
-    }
-  },
-  '/chatid': function (messagePayload) {
-    return {
-      command: 'read-chat-id',
-      filter: String(messagePayload.message.chat.id)
-    }
-  }
-}
-
 /**
  *
  * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
@@ -40,17 +21,8 @@ export const lambdaHandler = async (event, context) => {
     }
   }
 
-  const commandName = telegramMsg?.message?.text?.startsWith('/') && telegramMsg.message.text.split(' ')[0]
-  const commandInput = mappedCommands[commandName]
-  if (!commandInput) {
-    return {
-      statusCode: 200,
-      body: 'OK - No command'
-    }
-  }
-
-  console.log(`Executing command: ${commandName}`)
-  await triggerGitHubWorkflow(commandInput(telegramMsg), process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
+  console.log('Forwarding command to GitHub Actions')
+  await triggerGitHubWorkflow({ json_msg: event.body }, process.env.GH_WORKFLOW_URL, process.env.GH_TOKEN)
   return {
     statusCode: 200,
     body: 'OK'

@@ -1,37 +1,23 @@
 'use strict'
 
-const assert = require('node:assert')
-
-const { action: downloadTDG } = require('./actions/download-tdg')
-const { action: notifyUser } = require('./actions/telegram-notification')
+// ! These commands map the Telegram command (configured in BotFather)
+const mappedCommands = {
+  '/magazine': require('./actions/download-tdg'),
+  '/chatid': require('./actions/telegram-notification'),
+}
 
 async function run (args, env) {
-  const action = args[0]
+  const telegramMsg = JSON.parse(args[0])
 
-  console.log(`Executing action: ${action}`)
-  switch (action) {
-    case 'download-tdg': {
-      assert.ok(env.TDG_USER, 'TDG_USER is required')
-      assert.ok(env.TDG_PASSWORD, 'TDG_PASSWORD is required')
-      assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
-
-      const result = await downloadTDG(args, env)
-      await notifyUser(env, [
-        { type: 'message', payload: `Read ${result.fileName}` },
-        { type: 'file', payload: result.savePath }
-      ])
-      break
-    }
-    case 'read-chat-id': {
-      assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
-      await notifyUser(env, [
-        { type: 'message', payload: `The chat id is: ${env.TDG_FILTER}` },
-      ])
-      break
-    }
-    default:
-      throw new Error(`Action ${action} not found`)
+  const commandName = telegramMsg?.message?.text?.startsWith('/') && telegramMsg.message.text.split(' ')[0]
+  const actionToDo = mappedCommands[commandName]
+  if (!actionToDo) {
+    throw new Error(`Action ${commandName} not found`)
   }
+
+  console.log(`Executing command: ${commandName}`)
+  const params = actionToDo.buildOptions(telegramMsg, env)
+  await actionToDo.executeFlow(params)
 }
 
 run(process.argv.slice(2), process.env)

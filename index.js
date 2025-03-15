@@ -20,6 +20,12 @@ async function run (args, env) {
   await actionToDo.executeFlow(params)
 }
 
-run(process.argv.slice(2), process.env)
-  .then(() => console.log('Done'))
-  .catch(error => console.error('Error:', error))
+if (require.main === module) {
+  // Production mode: run as script
+  run(process.argv.slice(2), process.env)
+    .then(() => console.log('Done'))
+    .catch(error => console.error('Error:', error))
+} else {
+  // Test mode: run as module
+  module.exports = run
+}

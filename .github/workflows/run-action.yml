@@ -60,7 +60,8 @@ jobs:
 
     - name: Run script
       run: |
-        node index.js $(jq -r '.inputs.json_msg' ${GITHUB_EVENT_PATH})
+        jq -r -c '.inputs.json_msg' ${GITHUB_EVENT_PATH} > message.json
+        node index.js --jsonPath message.json
       env:
         TDG_USER: ${{ secrets.TDG_USER }}
         TDG_PASSWORD: ${{ secrets.TDG_PASSWORD }}

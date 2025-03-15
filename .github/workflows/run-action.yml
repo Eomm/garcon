@@ -60,9 +60,7 @@ jobs:
 
     - name: Run script
       run: |
-        export MASKED_INPUT=$(jq -r '.inputs.json_msg' ${GITHUB_EVENT_PATH})
-        echo "::add-mask::${MASKED_INPUT}"
-        node index.js $MASKED_INPUT
+        node index.js $(jq -r '.inputs.json_msg' ${GITHUB_EVENT_PATH})
       env:
         TDG_USER: ${{ secrets.TDG_USER }}
         TDG_PASSWORD: ${{ secrets.TDG_PASSWORD }}

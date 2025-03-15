@@ -32,7 +32,7 @@ if (require.main === module) {
   // Production mode: run as script
   const options = {
     jsonPath: {
-      type: 'strict',
+      type: 'string',
     },
   }
   const { values } = parseArgs({ options })

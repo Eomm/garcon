@@ -11,6 +11,7 @@
     "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
     "start:store-msg": "node --env-file=.env bin/telegram-store-messages.js",
     "deploy:webhook": "node --env-file=.env bin/telegram-set-webhook.js",
+    "test:msg": "node --env-file=.env index --jsonPath=fixtures/forward-channel-msg-with-video.json",
     "test": "node --env-file=.env bin/telegram-tester.js"
   },
   "keywords": [
@@ -21,8 +22,11 @@
   "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/openai": "^1.2.5",
+    "ai": "^4.1.61",
     "playwright": "^1.49.1",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "neostandard": "^0.12.0"

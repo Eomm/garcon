@@ -7,6 +7,7 @@ const { parseArgs } = require('node:util')
 const mappedCommands = [
   require('./actions/download-tdg'),
   require('./actions/telegram-notification'),
+  require('./actions/track-anime-posts'),
 ]
 
 /**

@@ -9,29 +9,32 @@ const notifyUser = require('./telegram-notification')
 
 /**
  * @param {InputAction} options
- * @returns {Promise<{ title: string }>}
+ * @returns {Promise<OutputAction[]>}
 **/
-async function trackAnimePost (options) {
-  // gpt-4o-mini
-
-  const prompt = `Extract the information from the following chat message.
-The message is in italian and may not include all the information you need.
+async function remindMe (options) {
+  const prompt = `
+You are a smart assistant that helps me reminding different things.
+I'm forwarding you a message that I received from different channels.
+The message always includes something that I must remember.
+It could include multiple things to remember.
+The message may be in italian or english, but you must always reply in english.
+The message may not include all the information you need.
 The dates are relative to today's date: ${new Date().toISOString().slice(0, 10)}.
-Use the YYYY-MM-DD format for the release date.
-
-You can use the web search preview tool to find the platform where the anime is available
-in ITALY.
-
+Use the YYYY-MM-DD format as output.
+You can use the web search preview tool to find the platform where a media is available in ITALY.
+You can use the web search preview tool to find the genre of a media.
+You must extract the information from the following message:
   ---
-${options.fullMessage.message.caption}`
+${options.parseMessage}`
 
   const res = await generateObject({
     prompt,
     model: openai('o3-mini'),
+    output: 'array',
     schema: z.object({
-      type: z.string(),
       title: z.string(),
       category: z.string(),
+      genre: z.string(),
       releaseDate: z.string(),
       studio: z.string(),
       platform: z.string(),
@@ -42,19 +45,14 @@ ${options.fullMessage.message.caption}`
     providerOptions: {
       openai: {
         parallelToolCalls: false,
+        reasoningEffort: 'medium'
       },
     },
   })
 
   console.log(res)
-
   require('fs').writeFileSync('./chatgpt.json', JSON.stringify(res, null, 2))
 
-  // o3-mini
-  // try {
-  //
-  // } finally {
-  // }
   return res.object
 }
 
@@ -69,6 +67,7 @@ function buildOptions (telegramMsg, env) {
 
   return {
     fullMessage: telegramMsg,
+    parseMessage: telegramMsg.message.caption,
     apiKey: env.OPENAI_API_KEY,
     chatId: String(telegramMsg.message.chat.id),
     telegramBotToken: env.TELEGRAM_BOT_TOKEN,
@@ -80,7 +79,7 @@ function buildOptions (telegramMsg, env) {
  * @returns {Promise<void>}
  */
 async function executeFlow (options) {
-  const result = await trackAnimePost(options)
+  const result = await remindMe(options)
 
   // TODO store result to a database
 
@@ -93,12 +92,14 @@ async function executeFlow (options) {
 module.exports = {
   commandName: 'track-anime-posts',
   canHandle: (telegramMsg) => {
-    return !telegramMsg.message.text &&
+    const isForwardedMessage = //
       telegramMsg.message.forward_origin.type === 'channel' &&
       telegramMsg.message.forward_from_chat.type === 'channel' &&
       telegramMsg.message.caption
+
+    return !telegramMsg.message.text && isForwardedMessage
   },
-  action: trackAnimePost,
+  action: remindMe,
   buildOptions,
   executeFlow
 }
@@ -106,7 +107,18 @@ module.exports = {
 /**
  * @typedef {Object} InputAction
  * @property {import('telegraf').Telegraf} fullMessage
+ * @property {string} parseMessage
  * @property {string} apiKey
  * @property {string} chatId
  * @property {string} telegramBotToken
+ */
+
+/**
+ * @typedef {Object} OutputAction
+ * @property {string} title
+ * @property {string} category
+ * @property {string} genre
+ * @property {string} releaseDate
+ * @property {string} studio
+ * @property {string} platform
  */

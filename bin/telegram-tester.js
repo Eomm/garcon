@@ -8,7 +8,7 @@ async function echoChatId (env) {
   const bot = new Telegraf(env.TELEGRAM_BOT_TOKEN)
 
   bot.use(async ctx => {
-    await botBrain([JSON.stringify(ctx.update)], process.env)
+    await botBrain(JSON.stringify(ctx.update), process.env)
   })
 
   bot.catch(async (err, ctx) => {

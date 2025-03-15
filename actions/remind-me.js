@@ -12,9 +12,8 @@ const notifyUser = require('./telegram-notification')
  * @returns {Promise<OutputAction[]>}
 **/
 async function remindMe (options) {
-  const prompt = `
-You are a smart assistant that helps me reminding different things.
-I'm forwarding you a message that I received from different channels.
+  const prompt = `You are a smart assistant that helps me reminding different things.
+I'm forwarding you a message that I received from different sources.
 The message always includes something that I must remember.
 It could include multiple things to remember.
 The message may be in italian or english, but you must always reply in english.
@@ -50,8 +49,8 @@ ${options.parseMessage}`
     },
   })
 
-  console.log(res)
-  require('fs').writeFileSync('./chatgpt.json', JSON.stringify(res, null, 2))
+  // TODO if debug
+  require('fs').writeFileSync(`./${res.response.id}.json`, JSON.stringify(res, null, 2))
 
   return res.object
 }
@@ -67,7 +66,7 @@ function buildOptions (telegramMsg, env) {
 
   return {
     fullMessage: telegramMsg,
-    parseMessage: telegramMsg.message.caption,
+    parseMessage: telegramMsg.message.caption || telegramMsg.message.text,
     apiKey: env.OPENAI_API_KEY,
     chatId: String(telegramMsg.message.chat.id),
     telegramBotToken: env.TELEGRAM_BOT_TOKEN,
@@ -83,21 +82,25 @@ async function executeFlow (options) {
 
   // TODO store result to a database
 
-  await notifyUser.action(options, [
-    { type: 'message', payload: `Saved ${result.title} ✅` },
-    // TODO delete previous message
-  ])
+  // TODO define a better output (such as setting a ✅ reaction)
+  await notifyUser.action(options, result.map((result) =>
+    ({ type: 'message', payload: `Saved ${result.title} ✅` })
+  ))
 }
 
 module.exports = {
-  commandName: 'track-anime-posts',
+  commandName: 'remind-me',
   canHandle: (telegramMsg) => {
-    const isForwardedMessage = //
+    const isChannelForwardedMsg = //
       telegramMsg.message.forward_origin.type === 'channel' &&
       telegramMsg.message.forward_from_chat.type === 'channel' &&
       telegramMsg.message.caption
 
-    return !telegramMsg.message.text && isForwardedMessage
+    const isUserForwardedMsg = //
+      telegramMsg.message.forward_origin.type === 'user' &&
+      telegramMsg.message.text
+
+    return isChannelForwardedMsg || isUserForwardedMsg
   },
   action: remindMe,
   buildOptions,

@@ -19,7 +19,6 @@ Download my favorite free magazine from [https://www.terradeigiochi.it/1039-tdg-
 | `TDG_USER` | Username to login to the website | |
 | `TDG_PASSWORD` | Password to login to the website | |
 | `TDG_ARTIFACT_NAME` | File name of the downloaded file | `tdg.pdf` |
-| `TDG_FILTER` | Filter to select the correct download link | Latest megazine |
 | `TDG_HEADLESS` | Run the browser in headless mode | `true` |
 | `TDG_TEST` | Skip the checkout logic to avoid to get a ban | `false` |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
@@ -28,24 +27,22 @@ Download my favorite free magazine from [https://www.terradeigiochi.it/1039-tdg-
 Run locally with:
 
 ```sh
-node --env-file=.env index.js download-tdg
+node --env-file=.env index.js <telegram json payload>
 ```
 
 ### read-chat-id
 
 Echo the chat id of the message received by the bot.
-It simply echo the `TDG_FILTER` environment variable set by the GHA workflow input.
 
 | Environment variable | Description | Default value |
 | --- | --- | --- |
-| `TDG_FILTER` | The message to echo | |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
 | `TELEGRAM_CHAT_ID` | Chat id where the bot will send the downloaded file | |
 
 Run locally with:
 
 ```sh
-node --env-file=.env index.js read-chat-id
+node --env-file=.env index.js <telegram json payload>
 ```
 
 ## Configuration
@@ -76,13 +73,13 @@ To get the chat id quickly and locally, you can use the following code:
 
 ```sh
 # Start the bot
-node --env-file=.env bin/telegram-find-chat-id.js
+npm run start:read-chatid
 
 # Send a message to the bot in the chat you want to use
 # The bot will reply with the chat id in the console and in the chat
 
 # __After__ you complete the `Deployment` section, you must update the telegram bot webhook
-node --env-file=.env bin/telegram-set-webhook.js
+npm run deploy:webhook
 ```
 
 

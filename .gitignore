@@ -131,3 +131,4 @@ dist
 .pnp.*
 .vscode/*
 package-lock.json
+fixtures/*.json

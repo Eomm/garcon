@@ -3,19 +3,9 @@ name: Run Bot Action
 on:
   workflow_dispatch:
     inputs:
-      command:
-        description: 'Command to run'
+      json_msg:
+        description: 'The telegram message in JSON format'
         required: true
-        default: 'download-tdg'
-        type: choice
-        options:
-          - download-tdg
-          - read-chat-id
-
-      filter:
-        description: 'Filter to apply based on the command'
-        required: false
-        default: ''
         type: string
 
       dry_run:
@@ -69,12 +59,14 @@ jobs:
       run: npx playwright install
 
     - name: Run script
-      run: node index.js ${{ github.event.inputs.command }}
+      run: |
+        export MASKED_INPUT=$(jq -r '.inputs.json_msg' ${GITHUB_EVENT_PATH})
+        echo "::add-mask::${MASKED_INPUT}"
+        node index.js $MASKED_INPUT
       env:
         TDG_USER: ${{ secrets.TDG_USER }}
         TDG_PASSWORD: ${{ secrets.TDG_PASSWORD }}
         TDG_ARTIFACT_NAME: 'tdg.pdf'
-        TDG_FILTER: ${{ github.event.inputs.filter }}
         TDG_TEST: ${{ github.event.inputs.dry_run }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

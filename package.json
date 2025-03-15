@@ -1,6 +1,6 @@
 {
   "name": "garcon",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "My personal bot",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,9 @@
     "playwright:codegen": "npx playwright codegen",
     "start:download-tdg": "node --env-file=.env index.js download-tdg",
     "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:store-msg": "node --env-file=.env bin/telegram-store-messages.js",
+    "deploy:webhook": "node --env-file=.env bin/telegram-set-webhook.js",
+    "test": "node --env-file=.env bin/telegram-tester.js"
   },
   "keywords": [
     "telegram",

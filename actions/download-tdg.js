@@ -27,6 +27,7 @@ async function downloadTDG (options) {
     // Login
     const page = await context.newPage()
     await page.goto(URLs.get('login'))
+    await page.getByRole('button', { name: 'done_all Accetta' }).click()
     await page.locator('input[type="email"]').click()
     await page.locator('input[type="email"]').fill(options.tdgUser)
     await page.locator('input[name="password"]').click()

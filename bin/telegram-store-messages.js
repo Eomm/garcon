@@ -5,7 +5,7 @@ const path = require('node:path')
 
 const { Telegraf } = require('telegraf')
 
-async function echoChatId (env) {
+async function saveRawMessages (env) {
   const bot = new Telegraf(env.TELEGRAM_BOT_TOKEN)
 
   bot.use(async ctx => {
@@ -19,10 +19,15 @@ async function echoChatId (env) {
     console.error(`Error for ${ctx.updateType}`, err)
   })
 
-  // ‼️ Don't forget to restore the webhook after running this script
-  await bot.launch()
+  process.once('SIGINT', () => {
+    console.warn("‼️ Don't forget to restore the webhook after running this script")
+    bot.stop()
+  })
 
-  process.once('SIGINT', () => bot.stop())
+  process.nextTick(() => {
+    console.log('Bot is listening for messages...')
+  })
+  await bot.launch()
 }
 
-echoChatId(process.env)
+saveRawMessages(process.env)

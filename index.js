@@ -46,8 +46,9 @@ if (require.main === module) {
   const { values } = parseArgs({ options })
   const jsonString = fs.readFileSync(values.jsonPath, 'utf8')
 
+  console.time('Done')
   run(jsonString, process.env)
-    .then(() => console.log('Done'))
+    .then(() => console.timeEnd('Done'))
     .catch(error => {
       console.error('Error:', error)
       process.exit(1)

@@ -3,6 +3,7 @@
 const assert = require('node:assert')
 const { generateObject } = require('ai')
 const { openai } = require('@ai-sdk/openai')
+const { createOpenAICompatible } = require('@ai-sdk/openai-compatible')
 const { z } = require('zod')
 
 const notifyUser = require('./telegram-notification')
@@ -22,13 +23,28 @@ The dates are relative to today's date: ${new Date().toISOString().slice(0, 10)}
 Use the YYYY-MM-DD format as output.
 You can use the web search preview tool to find the platform where a media is available in ITALY.
 You can use the web search preview tool to find the genre of a media.
+For each output field, read the message and try to extract the information from it.
+Do not try to fullfill all the information if you can't find it.
 You must extract the information from the following message:
-  ---
+
+---Message section:---
 ${options.parseMessage}`
+
+  // Deeps
+  // https://hix.ai/home
+
+  const lmstudio = createOpenAICompatible({
+    name: 'lmstudio',
+    baseURL: 'http://localhost:1234/v1',
+  })
 
   const res = await generateObject({
     prompt,
-    model: openai('o3-mini'),
+    // model: openai('o3-mini'), // 😄
+    // model: lmstudio('deepseek-r1-distill-qwen-7b'), // 🤮
+    // model: lmstudio('gemma-3-4b-it'), // 😕
+    model: lmstudio('deepseek-r1-distill-llama-8b'), // 🥲
+    maxRetries: 2,
     output: 'array',
     schema: z.object({
       title: z.string(),
@@ -48,6 +64,8 @@ ${options.parseMessage}`
       },
     },
   })
+
+  console.log(res)
 
   // TODO if debug
   require('fs').writeFileSync(`./${res.response.id}.json`, JSON.stringify(res, null, 2))

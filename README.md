@@ -27,7 +27,7 @@ Download my favorite free magazine from [https://www.terradeigiochi.it/1039-tdg-
 Run locally with:
 
 ```sh
-node --env-file=.env index.js <telegram json payload>
+node --env-file=.env index.js --jsonPath=fixtures/action-megazine.json
 ```
 
 ### read-chat-id
@@ -42,7 +42,7 @@ Echo the chat id of the message received by the bot.
 Run locally with:
 
 ```sh
-node --env-file=.env index.js <telegram json payload>
+node --env-file=.env index.js --jsonPath=<telegram json payload file>
 ```
 
 ## Configuration

@@ -1,7 +1,7 @@
 'use strict'
 
 const assert = require('node:assert')
-const { generateObject } = require('ai')
+const { generateText, Output } = require('ai')
 const { openai } = require('@ai-sdk/openai')
 const { createOpenAICompatible } = require('@ai-sdk/openai-compatible')
 const { z } = require('zod')
@@ -13,22 +13,30 @@ const notifyUser = require('./telegram-notification')
  * @returns {Promise<OutputAction[]>}
 **/
 async function remindMe (options) {
-  const prompt = `You are a smart assistant that helps me reminding different things.
-I'm forwarding you a message that I received from different sources.
-The message always includes something that I must remember.
-It could include multiple things to remember.
-The message may be in italian or english, but you must always reply in english.
-The message may not include all the information you need.
+  const prompt = `
+You are a smart assistant that must extract reminders from forwarded messages.
+
+## Input
+
+You will get a forwarded message from a Telegram user.
+The message always includes one or more of the following information to remember:
+- a title of an interesting media
+- when the media will be released
+- when an event will happen
+The message may include multiple media titles to remember.
+The message may be in italian or english.
 The dates are relative to today's date: ${new Date().toISOString().slice(0, 10)}.
-Use the YYYY-MM-DD format as output.
+The message may not include all the information you need: do not invent any information.
+
+## Output
+
+You must reply in english and in JSON format.
+You must output a JSON array of objects where each object is a reminder to save.
+Use always YYYY-MM-DD format as output. If the precise date is not known, assume the first day of the month or year.
 You can use the web search preview tool to find the platform where a media is available in ITALY.
 You can use the web search preview tool to find the genre of a media.
-For each output field, read the message and try to extract the information from it.
-Do not try to fullfill all the information if you can't find it.
-You must extract the information from the following message:
-
----Message section:---
-${options.parseMessage}`
+Any missing information should be left blank in the output.
+For each output field, read the message and try to extract the information from it.`
 
   // Deeps
   // https://hix.ai/home
@@ -36,26 +44,28 @@ ${options.parseMessage}`
   const lmstudio = createOpenAICompatible({
     name: 'lmstudio',
     baseURL: 'http://localhost:1234/v1',
+    supportsStructuredOutputs: true,
   })
 
-  const res = await generateObject({
-    prompt,
-    // model: openai('o3-mini'), // 😄
-    // model: lmstudio('deepseek-r1-distill-qwen-7b'), // 🤮
-    // model: lmstudio('gemma-3-4b-it'), // 😕
-    model: lmstudio('deepseek-r1-distill-llama-8b'), // 🥲
+  const res = await generateText({
+    model: lmstudio('deepseek-r1-distill-llama-8b'),
+    system: prompt,
+    prompt: options.parseMessage,
     maxRetries: 2,
-    output: 'array',
-    schema: z.object({
-      title: z.string(),
-      category: z.string(),
-      genre: z.string(),
-      releaseDate: z.string(),
-      studio: z.string(),
-      platform: z.string(),
+    maxSteps: 3,
+    output: Output.array({
+      element: z.object({
+        title: z.string(),
+        category: z.string(),
+        genre: z.string(),
+        releaseDate: z.string(),
+        studio: z.string(),
+        platform: z.string(),
+      })
     }),
+    toolChoice: 'auto',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview(),
+      // web_search: openai.tools.webSearch(),
     },
     providerOptions: {
       openai: {
@@ -65,12 +75,14 @@ ${options.parseMessage}`
     },
   })
 
-  console.log(res)
+  // console.log(res)
+  console.log(res.output)
+  // console.log(res.totalUsage)
 
   // TODO if debug
-  require('fs').writeFileSync(`./${res.response.id}.json`, JSON.stringify(res, null, 2))
+  require('fs').writeFileSync(`./NO_${res.response.id}.json`, JSON.stringify(res, null, 2))
 
-  return res.object
+  return res.output
 }
 
 /**

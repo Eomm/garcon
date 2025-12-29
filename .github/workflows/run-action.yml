@@ -69,6 +69,7 @@ jobs:
         TDG_TEST: ${{ github.event.inputs.dry_run }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

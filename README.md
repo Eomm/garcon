@@ -30,6 +30,34 @@ Run locally with:
 node --env-file=.env index.js --jsonPath=fixtures/action-megazine.json
 ```
 
+### remind-me
+
+Extract reminders from forwarded messages using AI to parse media releases and events.
+
+This action uses Google's Gemini AI to intelligently extract reminder information from forwarded Telegram messages, including:
+- Media titles (movies, anime, manga, video games)
+- Release dates
+- Platforms and studios
+- Event dates
+
+The AI can understand messages in both Italian and English, and automatically formats the output as structured reminders.
+
+| Environment variable | Description | Default value |
+| --- | --- | --- |
+| `GOOGLE_AI_API_KEY` | Google AI API key for Gemini | |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token | |
+| `TELEGRAM_CHAT_ID` | Chat id where the bot will send the reminders | |
+| `DEBUG_REMIND_ME` | Enable debug mode to save AI responses | `false` |
+
+Run locally with:
+
+```sh
+node --env-file=.env index.js --jsonPath=fixtures/forward-channel-msg-with-photo.json
+```
+
+The action automatically sends formatted reminders back to the Telegram chat so you can copy them
+and ask to Gemini to add them to your calendar or reminder app (simple MVP/copy-paste solution).
+
 ### read-chat-id
 
 Echo the chat id of the message received by the bot.

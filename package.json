@@ -8,11 +8,10 @@
     "lint:fix": "eslint --fix",
     "playwright:codegen": "npx playwright codegen",
     "start:download-tdg": "node --env-file=.env index.js --jsonPath=fixtures/action-megazine.json",
+    "start:remind-me": "node --env-file=.env index --jsonPath=fixtures/forward-channel-msg-with-video.json",
     "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
     "start:store-msg": "node --env-file=.env bin/telegram-store-messages.js",
     "deploy:webhook": "node --env-file=.env bin/telegram-set-webhook.js",
-    "test:msg": "node --env-file=.env index --jsonPath=fixtures/forward-channel-msg-with-video.json",
-    "test:msg:user": "node --env-file=.env index --jsonPath=fixtures/forward-simple-text.json",
     "test": "node --env-file=.env bin/telegram-tester.js"
   },
   "keywords": [

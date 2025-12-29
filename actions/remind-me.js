@@ -1,9 +1,11 @@
 'use strict'
 
 const assert = require('node:assert')
+const fs = require('node:fs')
+const path = require('node:path')
+
 const { generateText, Output } = require('ai')
-const { openai } = require('@ai-sdk/openai')
-const { createOpenAICompatible } = require('@ai-sdk/openai-compatible')
+const { createGoogleGenerativeAI } = require('@ai-sdk/google')
 const { z } = require('zod')
 
 const notifyUser = require('./telegram-notification')
@@ -18,69 +20,82 @@ You are a smart assistant that must extract reminders from forwarded messages.
 
 ## Input
 
-You will get a forwarded message from a Telegram user.
+You will get a forwarded message from a Telegram chat.
 The message always includes one or more of the following information to remember:
 - a title of an interesting media
 - when the media will be released
 - when an event will happen
-The message may include multiple media titles to remember.
 The message may be in italian or english.
+The message may include multiple media titles to remember.
 The dates are relative to today's date: ${new Date().toISOString().slice(0, 10)}.
-The message may not include all the information you need: do not invent any information.
 
 ## Output
 
-You must reply in english and in JSON format.
 You must output a JSON array of objects where each object is a reminder to save.
-Use always YYYY-MM-DD format as output. If the precise date is not known, assume the first day of the month or year.
+You must reply in english and in JSON format.
+Except for the media title, all other fields are optional and must be lowercased.
+Use always YYYY-MM-DD format as output.
+If the precise date is not known, assume the first day of the month or year.
 You can use the web search preview tool to find the platform where a media is available in ITALY.
 You can use the web search preview tool to find the genre of a media.
+The user message may not include all the information you need: do not invent any information.
 Any missing information should be left blank in the output.
-For each output field, read the message and try to extract the information from it.`
+`
 
-  // Deeps
-  // https://hix.ai/home
-
-  const lmstudio = createOpenAICompatible({
-    name: 'lmstudio',
-    baseURL: 'http://localhost:1234/v1',
-    supportsStructuredOutputs: true,
+  const google = createGoogleGenerativeAI({
+    apiKey: options.apiKey,
+  // custom settings
   })
 
   const res = await generateText({
-    model: lmstudio('deepseek-r1-distill-llama-8b'),
+    model: google('gemini-2.5-flash'),
     system: prompt,
-    prompt: options.parseMessage,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: options.parseMessage },
+          // {
+          //   type: 'file',
+          //   data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          //   mediaType: 'video/mp4',
+          // },
+        ]
+      }
+    ],
     maxRetries: 2,
     maxSteps: 3,
     output: Output.array({
       element: z.object({
         title: z.string(),
-        category: z.string(),
-        genre: z.string(),
+        season: z.string(),
+        category: z.enum(['movie', 'anime', 'manga', 'video game', 'event']),
+        genre: z.array(z.string()),
         releaseDate: z.string(),
-        studio: z.string(),
-        platform: z.string(),
+        studio: z.string().optional(),
+        platform: z.string().optional(),
       })
     }),
     toolChoice: 'auto',
     tools: {
-      // web_search: openai.tools.webSearch(),
+      // TODO: not working yet
+      // google_search: google.tools.googleSearch({
+      // }),
     },
     providerOptions: {
-      openai: {
-        parallelToolCalls: false,
-        reasoningEffort: 'medium'
+      google: {
+        structuredOutputs: true,
       },
     },
   })
+  console.log(`This request took ${res.totalUsage.inputTokens} input token and ${res.totalUsage.outputTokens} output tokens`)
 
-  // console.log(res)
-  console.log(res.output)
-  // console.log(res.totalUsage)
+  if (options.debug) {
+    const debugFile = path.join(__dirname, '../', `./GEMINI_${res.response.id}.json`)
+    fs.writeFileSync(debugFile, JSON.stringify(res, null, 2))
 
-  // TODO if debug
-  require('fs').writeFileSync(`./NO_${res.response.id}.json`, JSON.stringify(res, null, 2))
+    console.debug(res.output)
+  }
 
   return res.output
 }
@@ -91,15 +106,16 @@ For each output field, read the message and try to extract the information from 
  * @returns {InputAction}
  */
 function buildOptions (telegramMsg, env) {
-  assert.ok(env.OPENAI_API_KEY, 'OPENAI_API_KEY is required')
+  assert.ok(env.GOOGLE_AI_API_KEY, 'GOOGLE_AI_API_KEY is required')
   assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
 
   return {
     fullMessage: telegramMsg,
     parseMessage: telegramMsg.message.caption || telegramMsg.message.text,
-    apiKey: env.OPENAI_API_KEY,
+    apiKey: env.GOOGLE_AI_API_KEY,
     chatId: String(telegramMsg.message.chat.id),
     telegramBotToken: env.TELEGRAM_BOT_TOKEN,
+    debug: env.DEBUG_REMIND_ME === 'true' || false,
   }
 }
 
@@ -110,11 +126,13 @@ function buildOptions (telegramMsg, env) {
 async function executeFlow (options) {
   const result = await remindMe(options)
 
-  // TODO store result to a database
+  // TODO store result automatically to my reminders APP
+  const outputMsgs = result.map((r) => {
+    return `il ${r.releaseDate} esce ${r.title} ${r.platform ? ` su ${r.platform}` : ''}`
+  })
 
-  // TODO define a better output (such as setting a ✅ reaction)
   await notifyUser.action(options, result.map((result) =>
-    ({ type: 'message', payload: `Saved ${result.title} ✅` })
+    ({ type: 'message', payload: `Aggiungi i seguenti promemoria:\n ${outputMsgs.join('\n')}` })
   ))
 }
 
@@ -144,14 +162,16 @@ module.exports = {
  * @property {string} apiKey
  * @property {string} chatId
  * @property {string} telegramBotToken
+ * @property {boolean} debug
  */
 
 /**
  * @typedef {Object} OutputAction
  * @property {string} title
- * @property {string} category
- * @property {string} genre
+ * @property {string} season
+ * @property {'movie' | 'anime' | 'manga' | 'video game' | 'event'} category
+ * @property {string[]} genre
  * @property {string} releaseDate
- * @property {string} studio
- * @property {string} platform
+ * @property {string} [studio]
+ * @property {string} [platform]
  */

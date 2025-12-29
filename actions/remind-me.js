@@ -1,9 +1,11 @@
 'use strict'
 
 const assert = require('node:assert')
-const { generateObject } = require('ai')
-const { openai } = require('@ai-sdk/openai')
-const { createOpenAICompatible } = require('@ai-sdk/openai-compatible')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const { generateText, Output } = require('ai')
+const { createGoogleGenerativeAI } = require('@ai-sdk/google')
 const { z } = require('zod')
 
 const notifyUser = require('./telegram-notification')
@@ -13,64 +15,89 @@ const notifyUser = require('./telegram-notification')
  * @returns {Promise<OutputAction[]>}
 **/
 async function remindMe (options) {
-  const prompt = `You are a smart assistant that helps me reminding different things.
-I'm forwarding you a message that I received from different sources.
-The message always includes something that I must remember.
-It could include multiple things to remember.
-The message may be in italian or english, but you must always reply in english.
-The message may not include all the information you need.
+  const prompt = `
+You are a smart assistant that must extract reminders from forwarded messages.
+
+## Input
+
+You will get a forwarded message from a Telegram chat.
+The message always includes one or more of the following information to remember:
+- a title of an interesting media
+- when the media will be released
+- when an event will happen
+The message may be in italian or english.
+The message may include multiple media titles to remember.
 The dates are relative to today's date: ${new Date().toISOString().slice(0, 10)}.
-Use the YYYY-MM-DD format as output.
+
+## Output
+
+You must output a JSON array of objects where each object is a reminder to save.
+You must reply in english and in JSON format.
+Except for the media title, all other fields are optional and must be lowercased.
+Use always YYYY-MM-DD format as output.
+If the precise date is not known, assume the first day of the month or year.
 You can use the web search preview tool to find the platform where a media is available in ITALY.
 You can use the web search preview tool to find the genre of a media.
-For each output field, read the message and try to extract the information from it.
-Do not try to fullfill all the information if you can't find it.
-You must extract the information from the following message:
+The user message may not include all the information you need: do not invent any information.
+Any missing information should be left blank in the output.
+`
 
----Message section:---
-${options.parseMessage}`
-
-  // Deeps
-  // https://hix.ai/home
-
-  const lmstudio = createOpenAICompatible({
-    name: 'lmstudio',
-    baseURL: 'http://localhost:1234/v1',
+  const google = createGoogleGenerativeAI({
+    apiKey: options.apiKey,
+  // custom settings
   })
 
-  const res = await generateObject({
-    prompt,
-    // model: openai('o3-mini'), // 😄
-    // model: lmstudio('deepseek-r1-distill-qwen-7b'), // 🤮
-    // model: lmstudio('gemma-3-4b-it'), // 😕
-    model: lmstudio('deepseek-r1-distill-llama-8b'), // 🥲
+  const res = await generateText({
+    model: google('gemini-2.5-flash'),
+    system: prompt,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: options.parseMessage },
+          // {
+          //   type: 'file',
+          //   data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          //   mediaType: 'video/mp4',
+          // },
+        ]
+      }
+    ],
     maxRetries: 2,
-    output: 'array',
-    schema: z.object({
-      title: z.string(),
-      category: z.string(),
-      genre: z.string(),
-      releaseDate: z.string(),
-      studio: z.string(),
-      platform: z.string(),
+    maxSteps: 3,
+    output: Output.array({
+      element: z.object({
+        title: z.string(),
+        season: z.string(),
+        category: z.enum(['movie', 'anime', 'manga', 'video game', 'event']),
+        genre: z.array(z.string()),
+        releaseDate: z.string(),
+        studio: z.string().optional(),
+        platform: z.string().optional(),
+      })
     }),
+    toolChoice: 'auto',
     tools: {
-      web_search_preview: openai.tools.webSearchPreview(),
+      // TODO: not working yet
+      // google_search: google.tools.googleSearch({
+      // }),
     },
     providerOptions: {
-      openai: {
-        parallelToolCalls: false,
-        reasoningEffort: 'medium'
+      google: {
+        structuredOutputs: true,
       },
     },
   })
+  console.log(`This request took ${res.totalUsage.inputTokens} input token and ${res.totalUsage.outputTokens} output tokens`)
 
-  console.log(res)
+  if (options.debug) {
+    const debugFile = path.join(__dirname, '../', `./GEMINI_${res.response.id}.json`)
+    fs.writeFileSync(debugFile, JSON.stringify(res, null, 2))
 
-  // TODO if debug
-  require('fs').writeFileSync(`./${res.response.id}.json`, JSON.stringify(res, null, 2))
+    console.debug(res.output)
+  }
 
-  return res.object
+  return res.output
 }
 
 /**
@@ -79,15 +106,16 @@ ${options.parseMessage}`
  * @returns {InputAction}
  */
 function buildOptions (telegramMsg, env) {
-  assert.ok(env.OPENAI_API_KEY, 'OPENAI_API_KEY is required')
+  assert.ok(env.GOOGLE_AI_API_KEY, 'GOOGLE_AI_API_KEY is required')
   assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
 
   return {
     fullMessage: telegramMsg,
     parseMessage: telegramMsg.message.caption || telegramMsg.message.text,
-    apiKey: env.OPENAI_API_KEY,
+    apiKey: env.GOOGLE_AI_API_KEY,
     chatId: String(telegramMsg.message.chat.id),
     telegramBotToken: env.TELEGRAM_BOT_TOKEN,
+    debug: env.DEBUG_REMIND_ME === 'true' || false,
   }
 }
 
@@ -98,11 +126,13 @@ function buildOptions (telegramMsg, env) {
 async function executeFlow (options) {
   const result = await remindMe(options)
 
-  // TODO store result to a database
+  // TODO store result automatically to my reminders APP
+  const outputMsgs = result.map((r) => {
+    return `il ${r.releaseDate} esce ${r.title} ${r.platform ? ` su ${r.platform}` : ''}`
+  })
 
-  // TODO define a better output (such as setting a ✅ reaction)
   await notifyUser.action(options, result.map((result) =>
-    ({ type: 'message', payload: `Saved ${result.title} ✅` })
+    ({ type: 'message', payload: `Aggiungi i seguenti promemoria:\n ${outputMsgs.join('\n')}` })
   ))
 }
 
@@ -132,14 +162,16 @@ module.exports = {
  * @property {string} apiKey
  * @property {string} chatId
  * @property {string} telegramBotToken
+ * @property {boolean} debug
  */
 
 /**
  * @typedef {Object} OutputAction
  * @property {string} title
- * @property {string} category
- * @property {string} genre
+ * @property {string} season
+ * @property {'movie' | 'anime' | 'manga' | 'video game' | 'event'} category
+ * @property {string[]} genre
  * @property {string} releaseDate
- * @property {string} studio
- * @property {string} platform
+ * @property {string} [studio]
+ * @property {string} [platform]
  */

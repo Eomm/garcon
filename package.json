@@ -8,11 +8,10 @@
     "lint:fix": "eslint --fix",
     "playwright:codegen": "npx playwright codegen",
     "start:download-tdg": "node --env-file=.env index.js --jsonPath=fixtures/action-megazine.json",
+    "start:remind-me": "node --env-file=.env index --jsonPath=fixtures/forward-channel-msg-with-video.json",
     "start:read-chatid": "node --env-file=.env bin/telegram-find-chat-id.js",
     "start:store-msg": "node --env-file=.env bin/telegram-store-messages.js",
     "deploy:webhook": "node --env-file=.env bin/telegram-set-webhook.js",
-    "test:msg": "node --env-file=.env index --jsonPath=fixtures/forward-channel-msg-with-video.json",
-    "test:msg:user": "node --env-file=.env index --jsonPath=fixtures/forward-simple-text.json",
     "test": "node --env-file=.env bin/telegram-tester.js"
   },
   "keywords": [
@@ -23,9 +22,8 @@
   "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
   "license": "MIT",
   "dependencies": {
-    "@ai-sdk/openai": "^1.2.5",
-    "@ai-sdk/openai-compatible": "^0.1.15",
-    "ai": "^4.1.61",
+    "@ai-sdk/google": "^3.0.1",
+    "ai": "^6.0.0",
     "playwright": "^1.49.1",
     "telegraf": "^4.16.3",
     "zod": "^3.24.2"

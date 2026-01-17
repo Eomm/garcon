@@ -8,6 +8,7 @@ const mappedCommands = [
   require('./actions/download-tdg'),
   require('./actions/telegram-notification'),
   require('./actions/remind-me'),
+  require('./actions/inspect-cardtrader'),
 ]
 
 /**

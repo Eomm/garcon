@@ -24,6 +24,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
     "ai": "^6.0.0",
+    "@supabase/supabase-js": "^2.91.1",
     "playwright": "^1.49.1",
     "telegraf": "^4.16.3",
     "zod": "^3.24.2"

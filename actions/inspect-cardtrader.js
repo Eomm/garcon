@@ -3,11 +3,42 @@
 const assert = require('node:assert')
 const path = require('node:path')
 const fs = require('node:fs')
+const { createClient } = require('@supabase/supabase-js')
 
-const baseUrl = 'https://api.cardtrader.com/api/v2' // ! todo
+const CARD_TRADER_BASE_URL = 'https://api.cardtrader.com/api/v2'
+
+async function loadDbCards (supabase) {
+  const { data, error } = await supabase
+    .from('tracking_card')
+    .select('*')
+
+  if (error) {
+    console.error('Error loading tracking_card from Supabase', error)
+    return []
+  }
+
+  return data ?? []
+}
+
+async function upsertTrackingCards (supabase, rows) {
+  if (!rows || rows.length === 0) {
+    console.log('No tracking_card rows to upsert')
+    return
+  }
+
+  const { error } = await supabase
+    .from('tracking_card')
+    .upsert(rows, { onConflict: 'blueprint_id' })
+
+  if (error) {
+    console.error('Error upserting tracking_card into Supabase', error)
+  } else {
+    console.log(`Upserted ${rows.length} tracking_card rows into Supabase`)
+  }
+}
 
 async function loadExpansionsMap (options) {
-  const url = `${baseUrl}/expansions`
+  const url = `${CARD_TRADER_BASE_URL}/expansions`
   const body = await cacheRequest(url, options)
 
   // The body is an array of expansions, e.g.:
@@ -23,7 +54,7 @@ async function loadExpansionsMap (options) {
 }
 
 async function fetchWishlist (options) {
-  const urlWish = `${baseUrl}/wishlists/${options.wishlistId}`
+  const urlWish = `${CARD_TRADER_BASE_URL}/wishlists/${options.wishlistId}`
   const wishlist = await freshRequest(urlWish, options)
 
   // The body contains the wishlist details, including items, e.g.:
@@ -42,7 +73,7 @@ async function fetchWishlist (options) {
 }
 
 async function fetchCardSetMap (expansionId, options) {
-  const urlSet = `${baseUrl}/blueprints/export?expansion_id=${expansionId}`
+  const urlSet = `${CARD_TRADER_BASE_URL}/blueprints/export?expansion_id=${expansionId}`
   const cardsSet = await cacheRequest(urlSet, options)
   const collectionMap = new Map()
   for (const card of cardsSet) {
@@ -57,7 +88,7 @@ async function fetchCardSetMap (expansionId, options) {
 async function fetchCardProducts (completeCard, options) {
   const { cardWish, cardDetail } = completeCard
   const blueprintId = cardDetail.id
-  const productUrl = `${baseUrl}/marketplace/products?expansion_id=${cardDetail.expansion_id}
+  const productUrl = `${CARD_TRADER_BASE_URL}/marketplace/products?expansion_id=${cardDetail.expansion_id}
   &blueprint_id=${blueprintId}
   &language=${cardWish.language ?? 'en'}`
   const productInfo = await freshRequest(productUrl, options)
@@ -74,9 +105,13 @@ async function fetchCardProducts (completeCard, options) {
  * Mock action that calls Cardtrader wishlist API and logs the response.
  *
  * @param {InputAction} options
- * @returns {Promise<OutputAction>}
+ * @returns {Promise<Array<{ card: any, prices: any[] }>>}
 **/
 async function inspectCardtrader (options) {
+  const supabase = createClient(options.supabaseUrl, options.supabaseKey)
+  const dbCards = await loadDbCards(supabase)
+  console.log({ dbCards })
+
   const expansionsMap = await loadExpansionsMap(options)
 
   const wishListItems = await fetchWishlist(options)
@@ -122,6 +157,7 @@ async function inspectCardtrader (options) {
     const { card, prices } = entry
     const { cardWish, cardDetail } = card
     return {
+      id: cardDetail.id,
       name: cardDetail.name,
       expansion: cardWish.expansion_code,
       collector_number: cardWish.collector_number,
@@ -133,7 +169,24 @@ async function inspectCardtrader (options) {
 
   console.table(tableView)
 
-  // TODO save on DB and then notify user via Telegram
+  const rows = toBuy
+    .filter(toBuyEntry => toBuyEntry.prices?.length > 0)
+    .map(entry => {
+      const { card, prices } = entry
+      const { cardWish, cardDetail } = card
+      const lowestPrice = prices[0].price.cents
+
+      return {
+        blueprint_id: cardDetail.id,
+        name: cardDetail.name,
+        expansion: cardWish.expansion_code,
+        price_cent: lowestPrice,
+      }
+    })
+
+  await upsertTrackingCards(supabase, rows)
+
+  // TODO select the cards to notify the user
 }
 
 async function freshRequest (url, options) {
@@ -180,11 +233,15 @@ function urlToFilename (url) {
 function buildOptions (telegramMsg, env) {
   assert.ok(env.CARDTRADER_API_KEY, 'CARDTRADER_API_KEY is required')
   assert.ok(env.CARDTRADER_WISHLIST_ID, 'CARDTRADER_WISHLIST_ID is required')
+  assert.ok(env.SUPABASE_URL, 'SUPABASE_URL is required')
+  assert.ok(env.SUPABASE_API_KEY, 'SUPABASE_API_KEY is required')
 
   return {
     fullMessage: telegramMsg,
     apiKey: env.CARDTRADER_API_KEY,
     wishlistId: env.CARDTRADER_WISHLIST_ID,
+    supabaseUrl: env.SUPABASE_URL,
+    supabaseKey: env.SUPABASE_API_KEY,
     debug: env.DEBUG_INSPECT_CARDTRADER === 'true' || false,
   }
 }

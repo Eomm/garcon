@@ -92,6 +92,7 @@ async function fetchCardProducts (completeCard, options) {
   &blueprint_id=${blueprintId}
   &language=${cardWish.language ?? 'en'}`
   const productInfo = await freshRequest(productUrl, options)
+  // const productInfo = await cacheRequest(productUrl, options)
 
   const offers = productInfo[blueprintId].filter(buyItem => {
     // Condition not set or matches the wishlist
@@ -110,10 +111,8 @@ async function fetchCardProducts (completeCard, options) {
 async function inspectCardtrader (options) {
   const supabase = createClient(options.supabaseUrl, options.supabaseKey)
   const dbCards = await loadDbCards(supabase)
-  console.log({ dbCards })
 
   const expansionsMap = await loadExpansionsMap(options)
-
   const wishListItems = await fetchWishlist(options)
 
   // Get the list of expansion IDs included in the wishlist to optimize requests
@@ -186,7 +185,27 @@ async function inspectCardtrader (options) {
 
   await upsertTrackingCards(supabase, rows)
 
-  // TODO select the cards to notify the user
+  const notifications = []
+  for (const dbCard of dbCards) {
+    const currentValue = toBuy.find(entry => entry.card.cardDetail.id === dbCard.blueprint_id)
+    if (!currentValue) {
+      // This is a new card that was not tracked before
+      continue
+    }
+
+    const currentPrice = currentValue.prices?.[0]?.price.cents || null
+    if (currentPrice && currentPrice < dbCard.price_cent) {
+      notifications.push({
+        blueprint_id: dbCard.blueprint_id,
+        name: dbCard.name,
+        old_price_cent: dbCard.price_cent,
+        new_price_cent: currentPrice,
+      })
+    }
+  }
+
+  // TODO Here you would notify the user about the price drop
+  console.log({ notifications })
 }
 
 async function freshRequest (url, options) {

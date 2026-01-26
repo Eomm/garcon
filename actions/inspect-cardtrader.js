@@ -5,6 +5,8 @@ const path = require('node:path')
 const fs = require('node:fs')
 const { createClient } = require('@supabase/supabase-js')
 
+const notifyUser = require('./telegram-notification')
+
 const CARD_TRADER_BASE_URL = 'https://api.cardtrader.com/api/v2'
 
 async function loadDbCards (supabase) {
@@ -204,8 +206,7 @@ async function inspectCardtrader (options) {
     }
   }
 
-  // TODO Here you would notify the user about the price drop
-  console.log({ notifications })
+  return notifications
 }
 
 async function freshRequest (url, options) {
@@ -254,6 +255,8 @@ function buildOptions (telegramMsg, env) {
   assert.ok(env.CARDTRADER_WISHLIST_ID, 'CARDTRADER_WISHLIST_ID is required')
   assert.ok(env.SUPABASE_URL, 'SUPABASE_URL is required')
   assert.ok(env.SUPABASE_API_KEY, 'SUPABASE_API_KEY is required')
+  assert.ok(env.TELEGRAM_CHAT_ID, 'TELEGRAM_CHAT_ID is required')
+  assert.ok(env.TELEGRAM_BOT_TOKEN, 'TELEGRAM_BOT_TOKEN is required')
 
   return {
     fullMessage: telegramMsg,
@@ -261,16 +264,31 @@ function buildOptions (telegramMsg, env) {
     wishlistId: env.CARDTRADER_WISHLIST_ID,
     supabaseUrl: env.SUPABASE_URL,
     supabaseKey: env.SUPABASE_API_KEY,
+    chatId: env.TELEGRAM_CHAT_ID,
+    telegramBotToken: env.TELEGRAM_BOT_TOKEN,
     debug: env.DEBUG_INSPECT_CARDTRADER === 'true' || false,
   }
 }
 
 /**
  * @param {InputAction} options
- * @returns {Promise<void>}
+ * @returns {Promise<NotificationPriceDrop[]>}
  */
 async function executeFlow (options) {
-  await inspectCardtrader(options)
+  const outputMsgs = await inspectCardtrader(options)
+
+  if (outputMsgs.length === 0) {
+    console.log('No price drops detected, no notification sent.')
+    return
+  }
+
+  const notificationMessage = outputMsgs.map((curr) => {
+    return `- [${curr.name}](https://www.cardtrader.com/it/cards/${curr.blueprint_id}): da ${formatPrice(curr.old_price_cent)} a ${formatPrice(curr.new_price_cent)}`
+  }).join('\n')
+
+  await notifyUser.action(options, [
+    { type: 'message', payload: notificationMessage }
+  ])
 }
 
 module.exports = {
@@ -286,11 +304,19 @@ module.exports = {
  * @property {import('telegraf').Telegraf} fullMessage
  * @property {string} apiKey
  * @property {string} wishlistId
+ * @property {string} supabaseUrl
+ * @property {string} supabaseKey
  * @property {boolean} debug
  */
 
 /**
- * @typedef {Object} OutputAction
- * @property {number} statusCode
- * @property {any} body
+ * @typedef {Object} NotificationPriceDrop
+ * @property {number} blueprint_id
+ * @property {string} name
+ * @property {number} old_price_cent
+ * @property {number} new_price_cent
  */
+
+function formatPrice (cent) {
+  return `€${(cent / 100).toFixed(2)}`
+}

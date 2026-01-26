@@ -15,7 +15,7 @@ async function notifyUser (options, steps) {
     console.log(`Sending ${step.type} to chat`)
     switch (step.type) {
       case 'message':
-        await bot.telegram.sendMessage(chatId, step.payload)
+        await bot.telegram.sendMessage(chatId, step.payload, { parse_mode: 'Markdown' })
         break
       case 'file':
         await bot.telegram.sendDocument(chatId, { source: step.payload })

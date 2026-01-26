@@ -1,0 +1,47 @@
+name: Run Cardtrader Inspection
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-cardtrader-inspect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Cache Node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-cache-${{ hashFiles('**/package.json') }}
+          restore-keys: ${{ runner.os }}-cache-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Cache Cardtrader data
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: ${{ runner.os }}-cardtrader-cache-v1
+
+      - name: Run Cardtrader script
+        run: node index.js --jsonPath=fixtures/cardtrader.json
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CARDTRADER_API_KEY: ${{ secrets.CARDTRADER_API_KEY }}
+          CARDTRADER_WISHLIST_ID: ${{ secrets.CARDTRADER_WISHLIST_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}

@@ -58,6 +58,20 @@ node --env-file=.env index.js --jsonPath=fixtures/forward-channel-msg-with-photo
 The action automatically sends formatted reminders back to the Telegram chat so you can copy them
 and ask to Gemini to add them to your calendar or reminder app (simple MVP/copy-paste solution).
 
+### inspect-cardtrader
+
+Inspect a Cardtrader wishlist by calling the Cardtrader API and logging the raw response.
+
+| Environment variable | Description | Default value |
+| --- | --- | --- |
+| `CARDTRADER_API_KEY` | Cardtrader API key used for authenticated requests | |
+| `CARDTRADER_WISHLIST_ID` | ID of the wishlist to fetch from Cardtrader | |
+| `DEBUG_INSPECT_CARDTRADER` | Enable extra logging for the inspect-cardtrader action | `false` |
+
+```sh
+node --env-file=.env index.js --jsonPath=fixtures/cardtrader.json
+```
+
 ### read-chat-id
 
 Echo the chat id of the message received by the bot.

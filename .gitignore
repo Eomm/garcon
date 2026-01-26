@@ -132,4 +132,5 @@ dist
 .vscode/*
 package-lock.json
 fixtures/*.json
+!fixtures/cardtrader.json
 cache/

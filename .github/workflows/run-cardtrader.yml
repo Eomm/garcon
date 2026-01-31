@@ -2,7 +2,7 @@ name: Run Cardtrader Inspection
 
 on:
   schedule:
-    - cron: "0 12 * * *"
+    - cron: "0 10-21 * * *"
   workflow_dispatch:
 
 jobs:

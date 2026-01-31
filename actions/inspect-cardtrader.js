@@ -90,15 +90,22 @@ async function fetchCardSetMap (expansionId, options) {
 async function fetchCardProducts (completeCard, options) {
   const { cardWish, cardDetail } = completeCard
   const blueprintId = cardDetail.id
+  const language = cardWish.language || 'en'
   const productUrl = `${CARD_TRADER_BASE_URL}/marketplace/products?expansion_id=${cardDetail.expansion_id}
   &blueprint_id=${blueprintId}
-  &language=${cardWish.language ?? 'en'}`
+  &language=${language}`
   const productInfo = await freshRequest(productUrl, options)
   // const productInfo = await cacheRequest(productUrl, options)
 
   const offers = productInfo[blueprintId].filter(buyItem => {
     // Condition not set or matches the wishlist
-    return !cardWish.condition || buyItem.properties_hash.condition === cardWish.condition
+    const conditionMatch = !cardWish.condition || buyItem.properties_hash.condition === cardWish.condition
+    const languageMatch = buyItem.properties_hash.mtg_language === language
+    const isCardTraderZero = buyItem.user.can_sell_sealed_with_ct_zero === true ||
+      buyItem.user.user_type === 'pro' ||
+      buyItem.user.can_sell_via_hub === true
+
+    return conditionMatch && languageMatch && isCardTraderZero
   })
 
   return offers

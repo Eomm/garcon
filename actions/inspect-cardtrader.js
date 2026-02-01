@@ -91,8 +91,7 @@ async function fetchCardProducts (completeCard, options) {
   const { cardWish, cardDetail } = completeCard
   const blueprintId = cardDetail.id
   const language = cardWish.language || 'en'
-  const productUrl = `${CARD_TRADER_BASE_URL}/marketplace/products?expansion_id=${cardDetail.expansion_id}
-  &blueprint_id=${blueprintId}
+  const productUrl = `${CARD_TRADER_BASE_URL}/marketplace/products?blueprint_id=${blueprintId}
   &language=${language}`
   const productInfo = await freshRequest(productUrl, options)
   // const productInfo = await cacheRequest(productUrl, options)

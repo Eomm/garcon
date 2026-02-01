@@ -96,6 +96,11 @@ async function fetchCardProducts (completeCard, options) {
   const productInfo = await freshRequest(productUrl, options)
   // const productInfo = await cacheRequest(productUrl, options)
 
+  if (!productInfo[blueprintId]) {
+    // No offers found for this card
+    return []
+  }
+
   const offers = productInfo[blueprintId].filter(buyItem => {
     // Condition not set or matches the wishlist
     const conditionMatch = !cardWish.condition || buyItem.properties_hash.condition === cardWish.condition

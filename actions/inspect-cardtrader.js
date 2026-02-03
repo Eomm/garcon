@@ -215,11 +215,12 @@ async function inspectCardtrader (options) {
   console.table(tableView)
 
   const rows = toBuy
-    .filter(toBuyEntry => toBuyEntry.prices?.length > 0)
     .map(entry => {
       const { card, prices } = entry
       const { cardWish, cardDetail } = card
-      const lowestPrice = prices[0].price.cents
+      const lowestPrice = entry.prices?.length > 0
+        ? prices[0].price.cents
+        : 10_000_000 // when there are no offers, set a very high price so we get notified when a price appears
 
       return {
         blueprint_id: cardDetail.id,

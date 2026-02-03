@@ -117,6 +117,34 @@ async function fetchCardProducts (completeCard, options) {
 }
 
 /**
+ * Process items in batches with rate limiting to avoid API limits
+ * @param {Array} items - Array of items to process
+ * @param {Function} processFn - Async function to process each item
+ * @param {Object} options - Rate limiting options
+ * @param {number} options.batchSize - Number of requests per batch (default: 8)
+ * @param {number} options.delayMs - Delay between batches in milliseconds (default: 1000)
+ * @returns {Promise<Array>} Array of results
+ */
+async function processBatchesWithRateLimit (items, processFn, { batchSize = 8, delayMs = 1000 } = {}) {
+  const results = []
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+
+    const batchResults = await Promise.all(batch.map(processFn))
+    results.push(...batchResults)
+
+    // Wait before processing next batch (unless this is the last batch)
+    if (i + batchSize < items.length) {
+      console.log(`Processed ${i + batch.length} items, waiting ${delayMs}ms before next batch...`)
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+  }
+
+  return results
+}
+
+/**
  * Mock action that calls Cardtrader wishlist API and logs the response.
  *
  * @param {InputAction} options
@@ -157,13 +185,17 @@ async function inspectCardtrader (options) {
     return { cardWish: wishItem, cardDetail }
   })
 
-  // For each card in the wishlist, fetch product info
-  const toBuy = []
-  for (const card of productWishlist) {
-    if (card === null) continue
-    const prices = await fetchCardProducts(card, options)
-    toBuy.push({ card, prices })
-  }
+  // For each card in the wishlist, fetch product info with rate limiting
+  const validCards = productWishlist.filter(card => card !== null)
+
+  const toBuy = await processBatchesWithRateLimit(
+    validCards,
+    async (card) => {
+      const prices = await fetchCardProducts(card, options)
+      return { card, prices }
+    },
+    { batchSize: 8, delayMs: 1000 }
+  )
 
   // Print result in a table
   const tableView = toBuy.map(entry => {

@@ -13,6 +13,7 @@ async function loadDbCards (supabase) {
   const { data, error } = await supabase
     .from('tracking_card')
     .select('*')
+    .order('price_cent', { ascending: true })
 
   if (error) {
     console.error('Error loading tracking_card from Supabase', error)
@@ -177,7 +178,7 @@ async function inspectCardtrader (options) {
       lowestPrice: prices?.[0]?.price.formatted || 'N/A',
       link: `https://www.cardtrader.com/it/cards/${cardDetail.id}`
     }
-  })
+  }).sort((a, b) => a.id - b.id)
 
   console.table(tableView)
 

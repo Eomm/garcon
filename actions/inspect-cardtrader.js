@@ -31,7 +31,7 @@ async function upsertTrackingCards (supabase, rows) {
 
   const { error } = await supabase
     .from('tracking_card')
-    .upsert(rows, { onConflict: 'blueprint_id' })
+    .upsert(rows)
 
   if (error) {
     console.error('Error upserting tracking_card into Supabase', error)
@@ -188,7 +188,7 @@ async function inspectCardtrader (options) {
   // For each card in the wishlist, fetch product info with rate limiting
   const validCards = productWishlist.filter(card => card !== null)
 
-  const toBuy = await processBatchesWithRateLimit(
+  const wishlistItems = await processBatchesWithRateLimit(
     validCards,
     async (card) => {
       const prices = await fetchCardProducts(card, options)
@@ -198,58 +198,85 @@ async function inspectCardtrader (options) {
   )
 
   // Print result in a table
-  const tableView = toBuy.map(entry => {
-    const { card, prices } = entry
-    const { cardWish, cardDetail } = card
-    return {
-      id: cardDetail.id,
-      name: cardDetail.name,
-      expansion: cardWish.expansion_code,
-      collector_number: cardWish.collector_number,
-      condition: cardWish.condition,
-      lowestPrice: prices?.[0]?.price.formatted || 'N/A',
-      link: `https://www.cardtrader.com/it/cards/${cardDetail.id}`
-    }
-  }).sort((a, b) => a.id - b.id)
+  displayWishlistItems(wishlistItems)
 
-  console.table(tableView)
-
-  const rows = toBuy
+  const now = new Date().toISOString()
+  const rows = wishlistItems
     .map(entry => {
       const { card, prices } = entry
       const { cardWish, cardDetail } = card
-      const lowestPrice = entry.prices?.length > 0
+      const lowestPrice = prices?.length > 0
         ? prices[0].price.cents
         : 10_000_000 // when there are no offers, set a very high price so we get notified when a price appears
+
+      const dbItem = dbCards.find(dbCard => dbCard.blueprint_id === cardDetail.id)
+      const diffCent = 30
+      if (dbItem && isPriceInRange(lowestPrice, dbItem.price_cent - diffCent, dbItem.price_cent + diffCent)) {
+        // No price change, skip updating
+        console.log(`No significant price change for ${cardDetail.name} (${cardDetail.id}), skipping update. Current: ${dbItem.price_cent}, New: ${lowestPrice}`)
+        return null
+      }
 
       return {
         blueprint_id: cardDetail.id,
         name: cardDetail.name,
         expansion: cardWish.expansion_code,
         price_cent: lowestPrice,
+        modified_at: now,
       }
     })
+    .filter(row => row !== null)
 
   await upsertTrackingCards(supabase, rows)
 
   const notifications = []
+  const nowDate = new Date()
+  const twentyFourHoursAgo = 24 * 60 * 60 * 1000
+  const cutoffTime = nowDate.getTime() - twentyFourHoursAgo
+  const updateModifiedAt = []
   for (const dbCard of dbCards) {
-    const currentValue = toBuy.find(entry => entry.card.cardDetail.id === dbCard.blueprint_id)
-    if (!currentValue) {
+    const currentCard = wishlistItems.find(entry => entry.card.cardDetail.id === dbCard.blueprint_id)
+
+    if (!currentCard) {
       // This is a new card that was not tracked before
       continue
     }
 
-    const currentPrice = currentValue.prices?.[0]?.price.cents || null
-    if (currentPrice && currentPrice < dbCard.price_cent) {
+    const currentPrice = currentCard.prices?.[0]?.price.cents || null
+    if (!currentPrice) {
+      // No current price available
+      continue
+    }
+
+    // Price consolidation notification (only if not modified in the last 24 hours)
+    const lastModified = new Date(dbCard.modified_at)
+
+    if (currentPrice < dbCard.price_cent) {
       notifications.push({
         blueprint_id: dbCard.blueprint_id,
         name: dbCard.name,
         old_price_cent: dbCard.price_cent,
         new_price_cent: currentPrice,
       })
+    } else if (lastModified.getTime() <= cutoffTime) {
+      notifications.push({
+        blueprint_id: dbCard.blueprint_id,
+        name: dbCard.name,
+        old_price_cent: currentPrice,
+      })
+
+      updateModifiedAt.push({
+        blueprint_id: dbCard.blueprint_id,
+        name: dbCard.name,
+        expansion: dbCard.expansion,
+        price_cent: dbCard.price_cent,
+        modified_at: now,
+      })
     }
   }
+
+  // Update modified_at for consolidation notifications
+  await upsertTrackingCards(supabase, updateModifiedAt)
 
   return notifications
 }
@@ -328,6 +355,10 @@ async function executeFlow (options) {
   }
 
   const notificationMessage = outputMsgs.map((curr) => {
+    if (curr.new_price_cent === undefined) {
+      return `- [${curr.name}](https://www.cardtrader.com/it/cards/${curr.blueprint_id}): nessuna nuova offerta (stabile ${formatPrice(curr.old_price_cent)})`
+    }
+
     return `- [${curr.name}](https://www.cardtrader.com/it/cards/${curr.blueprint_id}): da ${formatPrice(curr.old_price_cent)} a ${formatPrice(curr.new_price_cent)}`
   }).join('\n')
 
@@ -364,4 +395,32 @@ module.exports = {
 
 function formatPrice (cent) {
   return `€${(cent / 100).toFixed(2)}`
+}
+
+function isPriceInRange (priceCent, minCent, maxCent) {
+  return priceCent >= minCent && priceCent <= maxCent
+}
+
+function displayWishlistItems (wishlistItems) {
+  const tableView = wishlistItems
+    .sort((a, b) => {
+      const priceA = a.prices?.[0]?.price.cents || Number.MAX_SAFE_INTEGER
+      const priceB = b.prices?.[0]?.price.cents || Number.MAX_SAFE_INTEGER
+      return priceA - priceB
+    })
+    .map(entry => {
+      const { card, prices } = entry
+      const { cardWish, cardDetail } = card
+      return {
+        id: cardDetail.id,
+        name: cardDetail.name,
+        expansion: cardWish.expansion_code,
+        collector_number: cardWish.collector_number,
+        condition: cardWish.condition,
+        lowestPrice: prices?.[0]?.price.formatted || 'N/A',
+        link: `https://www.cardtrader.com/it/cards/${cardDetail.id}`
+      }
+    })
+
+  console.table(tableView)
 }

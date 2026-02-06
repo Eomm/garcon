@@ -211,10 +211,11 @@ async function inspectCardtrader (options) {
 
       const dbItem = dbCards.find(dbCard => dbCard.blueprint_id === cardDetail.id)
       const diffCent = 30
-      if (dbItem && isPriceInRange(lowestPrice, dbItem.price_cent - diffCent, dbItem.price_cent + diffCent)) {
+
+      const considerItSamePrice = dbItem && isPriceInRange(lowestPrice, dbItem.price_cent - diffCent, dbItem.price_cent + diffCent)
+      if (considerItSamePrice) {
         // No price change, skip updating
         console.log(`No significant price change for ${cardDetail.name} (${cardDetail.id}), skipping update. Current: ${dbItem.price_cent}, New: ${lowestPrice}`)
-        return null
       }
 
       return {
@@ -222,7 +223,7 @@ async function inspectCardtrader (options) {
         name: cardDetail.name,
         expansion: cardWish.expansion_code,
         price_cent: lowestPrice,
-        modified_at: now,
+        modified_at: considerItSamePrice ? dbItem.modified_at : now,
       }
     })
     .filter(row => row !== null)

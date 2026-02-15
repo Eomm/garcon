@@ -201,21 +201,48 @@ async function inspectCardtrader (options) {
   displayWishlistItems(wishlistItems)
 
   const now = new Date().toISOString()
+
+  const notifications = []
+  const twentyFourHoursAgo = 24 * 60 * 60 * 1000
+  const nowDate = new Date()
+  const cutoffTime = nowDate.getTime() - twentyFourHoursAgo
+
   const rows = wishlistItems
     .map(entry => {
       const { card, prices } = entry
       const { cardWish, cardDetail } = card
       const lowestPrice = prices?.length > 0
         ? prices[0].price.cents
-        : 10_000_000 // when there are no offers, set a very high price so we get notified when a price appears
+        : 32_600 // when there are no offers, set a very high price so we get notified when a price appears
 
       const dbItem = dbCards.find(dbCard => dbCard.blueprint_id === cardDetail.id)
       const diffCent = 30
+      let considerItSamePrice = dbItem && isPriceInRange(lowestPrice, dbItem.price_cent - diffCent, dbItem.price_cent + diffCent)
 
-      const considerItSamePrice = dbItem && isPriceInRange(lowestPrice, dbItem.price_cent - diffCent, dbItem.price_cent + diffCent)
-      if (considerItSamePrice) {
-        // No price change, skip updating
-        console.log(`No significant price change for ${cardDetail.name} (${cardDetail.id}), skipping update. Current: ${dbItem.price_cent}, New: ${lowestPrice}`)
+      if (dbItem) {
+        // Checking if I need to send a notification for price drop
+
+        const lastModified = new Date(dbItem.modified_at)
+        if (considerItSamePrice && lastModified.getTime() <= cutoffTime) {
+          // No price change, but it's been more than 24 hours since the last notification,
+          // so we send a consolidation notification to keep the user engaged and update the modified_at timestamp
+
+          notifications.push({
+            blueprint_id: dbItem.blueprint_id,
+            name: dbItem.name,
+            old_price_cent: lowestPrice,
+          })
+
+          // we want to update the modified_at timestamp even if the price is the same
+          considerItSamePrice = false
+        } else if (lowestPrice < dbItem.price_cent) {
+          notifications.push({
+            blueprint_id: dbItem.blueprint_id,
+            name: dbItem.name,
+            old_price_cent: dbItem.price_cent,
+            new_price_cent: lowestPrice,
+          })
+        }
       }
 
       return {
@@ -226,58 +253,8 @@ async function inspectCardtrader (options) {
         modified_at: considerItSamePrice ? dbItem.modified_at : now,
       }
     })
-    .filter(row => row !== null)
 
   await upsertTrackingCards(supabase, rows)
-
-  const notifications = []
-  const nowDate = new Date()
-  const twentyFourHoursAgo = 24 * 60 * 60 * 1000
-  const cutoffTime = nowDate.getTime() - twentyFourHoursAgo
-  const updateModifiedAt = []
-  for (const dbCard of dbCards) {
-    const currentCard = wishlistItems.find(entry => entry.card.cardDetail.id === dbCard.blueprint_id)
-
-    if (!currentCard) {
-      // This is a new card that was not tracked before
-      continue
-    }
-
-    const currentPrice = currentCard.prices?.[0]?.price.cents || null
-    if (!currentPrice) {
-      // No current price available
-      continue
-    }
-
-    // Price consolidation notification (only if not modified in the last 24 hours)
-    const lastModified = new Date(dbCard.modified_at)
-
-    if (currentPrice < dbCard.price_cent) {
-      notifications.push({
-        blueprint_id: dbCard.blueprint_id,
-        name: dbCard.name,
-        old_price_cent: dbCard.price_cent,
-        new_price_cent: currentPrice,
-      })
-    } else if (lastModified.getTime() <= cutoffTime) {
-      notifications.push({
-        blueprint_id: dbCard.blueprint_id,
-        name: dbCard.name,
-        old_price_cent: currentPrice,
-      })
-
-      updateModifiedAt.push({
-        blueprint_id: dbCard.blueprint_id,
-        name: dbCard.name,
-        expansion: dbCard.expansion,
-        price_cent: dbCard.price_cent,
-        modified_at: now,
-      })
-    }
-  }
-
-  // Update modified_at for consolidation notifications
-  await upsertTrackingCards(supabase, updateModifiedAt)
 
   return notifications
 }

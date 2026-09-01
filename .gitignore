@@ -134,3 +134,6 @@ package-lock.json
 fixtures/*.json
 !fixtures/cardtrader.json
 cache/
+.agents/
+.claude/
+.playwright-mcp/

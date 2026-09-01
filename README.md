@@ -87,6 +87,68 @@ Run locally with:
 node --env-file=.env index.js --jsonPath=<telegram json payload file>
 ```
 
+### anilist-list-anime
+
+Read a public [AniList](https://anilist.co/) anime list and, optionally, find the new seasons of the
+series you follow and add them to your `Planning` list.
+
+| Environment variable | Description | Default value |
+| --- | --- | --- |
+| `ANILIST_USER` | AniList username to read the anime list of. Overridden by the `--user` argument | |
+| `ANILIST_TOKEN` | AniList OAuth access token. Required only to write to the lists. When set, the username is read from the token | |
+
+| Argument | Description | Default value |
+| --- | --- | --- |
+| `--user` | AniList username | `ANILIST_USER` |
+| `--sequels` | Look for new/announced seasons instead of printing the list | `false` |
+| `--dry-run` | Only print the new seasons, never touch the `Planning` list | `false` |
+| `--yes` | Add every new season without asking | `false` |
+| `--depth` | How many times the sequel chain is followed | `10` |
+
+Print the whole anime list, grouped by list (Watching, Planning, Completed, ...).
+The `Planning` list is sorted by release date, the unknown ones (`TBA`) first, then the newest:
+
+```sh
+npm run start:anilist -- --user=Eomm
+```
+
+Find the new seasons and pick the ones to add to `Planning`:
+
+```sh
+# Read only: just print what is new
+npm run start:anilist-sequels -- --dry-run
+
+# Interactive: asks for each season [y/N/a=all/q=quit] and adds the chosen ones
+npm run start:anilist-sequels
+```
+
+How the sequel detection works:
+- every entry in `Watching`, `Completed`, `Paused` and `Rewatching` is a starting point (`Planning` and
+  `Dropped` are skipped on purpose)
+- the AniList `SEQUEL` relations of those entries are followed recursively, so a series binge-added years
+  ago still reports its latest season (e.g. `Dr. STONE` → `STONE WARS` → `New World` → `SCIENCE FUTURE`)
+- a sequel already present in any of your lists is never reported: only the missing ones are
+- `NOT_YET_RELEASED` sequels are reported as `announced` (e.g. `[Oshi no Ko] Final Season`), the others
+  as `released`
+- opening/ending songs (`MUSIC` format) are ignored
+
+Note that the AniList relation graph is franchise-wide: a long chain can drift into spin-offs
+(`Fate/Zero` → the whole `Fate` franchise). Lower `--depth` to keep the output tight.
+
+#### AniList authentication
+
+Reading a public list needs no authentication. Adding entries to `Planning` needs an OAuth access token:
+
+1. Create an API client at [https://anilist.co/settings/developer](https://anilist.co/settings/developer)
+   using `https://anilist.co/api/v2/oauth/pin` as the redirect URL
+2. Open `https://anilist.co/api/v2/oauth/authorize?client_id=<CLIENT_ID>&response_type=token` in the
+   browser and authorize the client
+3. Copy the `access_token` from the URL fragment into the `ANILIST_TOKEN` env variable
+
+The token is valid for 1 year.
+See also [Anilist-Node's guide](https://github.com/AurelicButter/Anilist-Node#using-anilist-node)
+for a step by step walkthrough on how to get the token.
+
 ## Configuration
 
 The configuration covers the following architecture:
